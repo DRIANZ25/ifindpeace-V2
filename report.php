@@ -56,9 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($stmt->execute()) {
                 $item_id = $conn->insert_id;
-                $success = ucfirst($item_type) . ' item reported successfully!';
+                $success = ucfirst($item_type) . ' item reported successfully! The admin will review this post.';
                 logActivity($user_id, 'report_' . $item_type, "Reported $item_type item: $item_name");
-                checkForMatches($item_id, $item_name, $category_id, $user_id, $conn);
+                
+                // Call the updated match function
+                checkForMatches($item_id, $item_name, $item_type, $category_id, $user_id, $conn);
             } else {
                 $error = 'Failed to report item. Please try again.';
             }
@@ -70,21 +72,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $conn->close();
 
-function checkForMatches($item_id, $item_name, $category_id, $user_id, $conn) {
-    $conn = getDBConnection();
-    $match_query = "SELECT item_id, user_id, item_name FROM items WHERE item_type = 'found' AND category_id = ? AND status = 'pending' AND user_id != ? LIMIT 5";
+// UPDATED FUNCTION: Checks category and includes category name in the notification
+function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_id, $conn) {
+    // 1. Determine the opposite type (if lost, look for found. if found, look for lost)
+    $opposite_type = ($item_type === 'lost') ? 'found' : 'lost';
+
+    // 2. Get the Category Name so we can put it in the notification text
+    $cat_stmt = $conn->prepare("SELECT category_name FROM categories WHERE category_id = ?");
+    $cat_stmt->bind_param("i", $category_id);
+    $cat_stmt->execute();
+    $cat_result = $cat_stmt->get_result()->fetch_assoc();
+    $category_name = $cat_result ? $cat_result['category_name'] : 'General';
+    $cat_stmt->close();
+
+    // 3. Query for potential matches (Strictly based on the same category)
+    $match_query = "SELECT item_id, user_id, item_name 
+                    FROM items 
+                    WHERE item_type = ? 
+                    AND category_id = ? 
+                    AND status = 'pending' 
+                    AND user_id != ? 
+                    LIMIT 5";
+                    
     $stmt = $conn->prepare($match_query);
-    $stmt->bind_param("ii", $category_id, $user_id);
+    $stmt->bind_param("sii", $opposite_type, $category_id, $user_id);
     $stmt->execute();
     $matches = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
-    $conn->close();
 
-    if (!$matches) {
-        return;
+    // 4. If matches are found, notify BOTH users
+    if ($matches) {
+        // Notify the person who just posted the item
+        $msg_new = "Potential match found! Someone recently reported a $opposite_type item in the '$category_name' category. Check your dashboard.";
+        sendNotification($user_id, $item_id, 'match_found', $msg_new);
+
+        // Notify the people who posted the older matching items
+        foreach ($matches as $match) {
+            $msg_old = "A new $item_type item ('$item_name') was just reported in the '$category_name' category. This might be your item! Check your dashboard.";
+            sendNotification($match['user_id'], $match['item_id'], 'match_found', $msg_old);
+        }
     }
-
-    sendNotification($user_id, $item_id, 'match_found', 'Potential matches found for your lost item. Check the browse items page.');
 }
 ?>
 <!DOCTYPE html>
@@ -159,10 +186,17 @@ function checkForMatches($item_id, $item_name, $category_id, $user_id, $conn) {
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="card shadow-lg">
-                    <div class="card-header">
+                    <div class="card-header bg-primary text-white">
                         <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Report <?php echo ucfirst($item_type); ?> Item</h4>
                     </div>
-                    <div class="card-body p-5">
+                    <div class="card-body p-4 p-md-5">
+                        
+                        <!-- Drop-off Point Reminder -->
+                        <div class="alert alert-warning border-warning mb-4 shadow-sm">
+                            <h6 class="fw-bold mb-1"><i class="fas fa-info-circle me-2"></i>Important Reminder</h6>
+                            <p class="mb-0 small">If you found an item, please surrender it to the <strong>Organization Office</strong>. The admin will handle the verification and returning process. Do not give items directly to claimants.</p>
+                        </div>
+
                         <?php if ($error): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-circle me-2"></i><?php echo $error; ?>
@@ -175,22 +209,22 @@ function checkForMatches($item_id, $item_name, $category_id, $user_id, $conn) {
                                 <i class="fas fa-check-circle me-2"></i><?php echo $success; ?>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
-                            <div class="text-center mt-3">
-                                <a href="items.php" class="btn btn-primary">Browse Items</a>
-                                <a href="my-items.php" class="btn btn-outline-primary ms-2">View My Items</a>
+                            <div class="text-center mt-4">
+                                <a href="my-items.php" class="btn btn-primary me-2">View My Items</a>
+                                <a href="dashboard.php" class="btn btn-outline-secondary">Back to Dashboard</a>
                             </div>
                         <?php else: ?>
                             <form method="POST" enctype="multipart/form-data">
                                 <div class="mb-4">
-                                    <label class="form-label">Item Type</label>
+                                    <label class="form-label fw-bold">Item Type</label>
                                     <div class="btn-group w-100" role="group">
                                         <input type="radio" class="btn-check" name="item_type" id="typeLost" value="lost" <?php echo $item_type === 'lost' ? 'checked' : ''; ?> required>
                                         <label class="btn btn-outline-danger" for="typeLost" style="padding: 1rem 2rem;">
-                                            <i class="fas fa-search me-2"></i>Lost
+                                            <i class="fas fa-search me-2"></i>I Lost an Item
                                         </label>
                                         <input type="radio" class="btn-check" name="item_type" id="typeFound" value="found" <?php echo $item_type === 'found' ? 'checked' : ''; ?>>
                                         <label class="btn btn-outline-success" for="typeFound" style="padding: 1rem 2rem;">
-                                            <i class="fas fa-hand-holding-heart me-2"></i>Found
+                                            <i class="fas fa-hand-holding-heart me-2"></i>I Found an Item
                                         </label>
                                     </div>
                                 </div>
@@ -202,7 +236,6 @@ function checkForMatches($item_id, $item_name, $category_id, $user_id, $conn) {
                                             <option value="">Select Category</option>
                                             <?php while ($cat = $categories->fetch_assoc()): ?>
                                                 <option value="<?php echo $cat['category_id']; ?>">
-                                                    <i class="fas <?php echo $cat['icon']; ?> me-2"></i>
                                                     <?php echo htmlspecialchars($cat['category_name']); ?>
                                                 </option>
                                             <?php endwhile; ?>
@@ -232,22 +265,22 @@ function checkForMatches($item_id, $item_name, $category_id, $user_id, $conn) {
 
                                 <div class="row g-3">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Color</label>
+                                        <label class="form-label">Color (Optional)</label>
                                         <input type="text" name="color" class="form-control" placeholder="e.g., Black, Blue">
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Brand</label>
+                                        <label class="form-label">Brand (Optional)</label>
                                         <input type="text" name="brand" class="form-control" placeholder="e.g., Apple, Nike">
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label">Item Image</label>
+                                <div class="mb-4">
+                                    <label class="form-label">Item Image (Optional)</label>
                                     <div class="custom-file-upload">
                                         <input type="file" name="image" class="form-control" accept="image/*" id="itemImage">
-                                        <label for="itemImage" class="file-upload-label">
-                                            <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
-                                            <span>Click to upload or drag and drop</span>
+                                        <label for="itemImage" class="file-upload-label border rounded p-4 text-center d-block w-100" style="cursor: pointer; background-color: #f8f9fa;">
+                                            <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-muted"></i>
+                                            <span class="d-block fw-bold">Click to upload or drag and drop</span>
                                             <small class="d-block text-muted">Upload a clear photo of the item (Max 5MB)</small>
                                         </label>
                                     </div>
@@ -284,7 +317,7 @@ function checkForMatches($item_id, $item_name, $category_id, $user_id, $conn) {
             const file = e.target.files[0];
             if (file) {
                 const label = document.querySelector('.file-upload-label');
-                label.innerHTML = `<i class="fas fa-check-circle fa-2x mb-2 text-success"></i><span>${file.name}</span><small class="d-block text-muted">Selected</small>`;
+                label.innerHTML = `<i class="fas fa-check-circle fa-2x mb-2 text-success"></i><span class="d-block fw-bold">${file.name}</span><small class="d-block text-muted">Selected</small>`;
             }
         });
     </script>
