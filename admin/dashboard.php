@@ -2,6 +2,9 @@
 require_once '../config/config.php';
 requireAdmin();
 
+// FIXED: Set timezone to Philippines so the greeting is accurate
+date_default_timezone_set('Asia/Manila');
+
 $conn = getDBConnection();
 
 // Get platform statistics (Expanded for better analytics)
@@ -20,12 +23,6 @@ $recent_users_query = "SELECT * FROM users ORDER BY created_at DESC LIMIT 5";
 $recent_users = $conn->query($recent_users_query);
 
 $conn->close();
-
-// Dynamic Greeting
-$hour = (int)date('H');
-if ($hour < 12) $greeting = 'Good morning';
-elseif ($hour < 18) $greeting = 'Good afternoon';
-else $greeting = 'Good evening';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -352,7 +349,8 @@ else $greeting = 'Good evening';
             <div class="admin-welcome fade-up">
                 <i class="fas fa-chart-pie welcome-icon-bg"></i>
                 <div class="welcome-text">
-                    <h2><?php echo $greeting; ?>, <span>Admin</span>!</h2>
+                    <!-- FIXED: Added an ID so JavaScript can update it dynamically -->
+                    <h2><span id="greetingText">Good day</span>, <span>Admin</span>!</h2>
                     <p>Here is the latest overview of the iFindPeace platform. The system is running smoothly.</p>
                 </div>
             </div>
@@ -536,11 +534,30 @@ else $greeting = 'Good evening';
     
     <script>
         // ============================================================
-        // 1. COUNT-UP ANIMATION FOR STAT CARDS
+        // 1. DYNAMIC TIME-BASED GREETING (Fixed)
+        // ============================================================
+        document.addEventListener("DOMContentLoaded", () => {
+            const hour = new Date().getHours();
+            let greeting = "Good morning";
+            
+            if (hour >= 12 && hour < 18) {
+                greeting = "Good afternoon";
+            } else if (hour >= 18 || hour < 5) {
+                greeting = "Good evening";
+            }
+            
+            const greetingEl = document.getElementById('greetingText');
+            if (greetingEl) {
+                greetingEl.textContent = greeting;
+            }
+        });
+
+        // ============================================================
+        // 2. COUNT-UP ANIMATION FOR STAT CARDS
         // ============================================================
         document.addEventListener("DOMContentLoaded", () => {
             const counters = document.querySelectorAll('.admin-stat-number');
-            const speed = 200; // The lower the slower
+            const speed = 200;
 
             counters.forEach(counter => {
                 const updateCount = () => {
@@ -560,17 +577,15 @@ else $greeting = 'Good evening';
         });
 
         // ============================================================
-        // 2. CHART.JS INITIALIZATION
+        // 3. CHART.JS INITIALIZATION
         // ============================================================
         document.addEventListener("DOMContentLoaded", () => {
-            // Set global defaults for Chart.js
             Chart.defaults.font.family = "'Instrument Sans', sans-serif";
             Chart.defaults.color = '#64748b';
             
             // --- Chart 1: Overview Bar Chart ---
             const ctx1 = document.getElementById('overviewChart').getContext('2d');
             
-            // Create gradient for bars
             let gradientBlue = ctx1.createLinearGradient(0, 0, 0, 400);
             gradientBlue.addColorStop(0, 'rgba(30, 64, 175, 0.9)');
             gradientBlue.addColorStop(1, 'rgba(30, 64, 175, 0.4)');
@@ -593,9 +608,9 @@ else $greeting = 'Good evening';
                         ],
                         backgroundColor: [
                             gradientBlue,
-                            'rgba(124, 58, 237, 0.8)', // Purple
+                            'rgba(124, 58, 237, 0.8)',
                             gradientYellow,
-                            'rgba(31, 157, 107, 0.8)'  // Green
+                            'rgba(31, 157, 107, 0.8)'
                         ],
                         borderColor: [
                             '#1e40af',
@@ -612,10 +627,7 @@ else $greeting = 'Good evening';
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: {
-                        duration: 2000,
-                        easing: 'easeOutQuart'
-                    },
+                    animation: { duration: 2000, easing: 'easeOutQuart' },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -628,21 +640,14 @@ else $greeting = 'Good evening';
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#f1f5f9', drawBorder: false },
-                            ticks: { stepSize: 1, precision: 0 }
-                        },
-                        x: {
-                            grid: { display: false, drawBorder: false }
-                        }
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9', drawBorder: false }, ticks: { stepSize: 1, precision: 0 } },
+                        x: { grid: { display: false, drawBorder: false } }
                     }
                 }
             });
 
             // --- Chart 2: Claims Doughnut Chart ---
             const ctx2 = document.getElementById('claimsChart').getContext('2d');
-            
             const pendingClaims = <?php echo $stats['pending_claims']; ?>;
             const resolvedClaims = <?php echo $stats['total_claims'] - $stats['pending_claims']; ?>;
 
@@ -661,26 +666,10 @@ else $greeting = 'Good evening';
                     responsive: true,
                     maintainAspectRatio: false,
                     cutout: '75%',
-                    animation: {
-                        animateScale: true,
-                        animateRotate: true
-                    },
+                    animation: { animateScale: true, animateRotate: true },
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20,
-                                font: { weight: '600' }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: '#0a1628',
-                            titleColor: '#facc15',
-                            bodyColor: '#fff',
-                            padding: 12,
-                            cornerRadius: 8
-                        }
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { weight: '600' } } },
+                        tooltip: { backgroundColor: '#0a1628', titleColor: '#facc15', bodyColor: '#fff', padding: 12, cornerRadius: 8 }
                     }
                 }
             });
