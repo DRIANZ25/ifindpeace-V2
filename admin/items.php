@@ -1,71 +1,93 @@
 <?php
 require_once '../config/config.php';
-requireAdmin();
+requireLogin();
+
+if (!isAdmin()) {
+    header("Location: ../dashboard.php");
+    exit();
+}
 
 $conn = getDBConnection();
+$message = '';
+$error = '';
 
-// Handle item status update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $item_id = intval($_POST['item_id']);
-    $status = sanitize($_POST['status']);
-    
-    $stmt = $conn->prepare("UPDATE items SET status = ? WHERE item_id = ?");
-    $stmt->bind_param("si", $status, $item_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    logActivity($_SESSION['user_id'], 'update_item_status', "Updated item $item_id status to $status");
-    
-    header("Location: items.php");
-    exit();
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $new_status = $_POST['status'] ?? '';
+    $action = $_POST['action'] ?? '';
 
-// Handle item deletion
-if (isset($_GET['delete'])) {
-    $item_id = intval($_GET['delete']);
-    
-    // Get item image path
-    $stmt = $conn->prepare("SELECT image_path FROM items WHERE item_id = ?");
-    $stmt->bind_param("i", $item_id);
-    $stmt->execute();
-    $item = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    
-    if ($item && $item['image_path']) {
-        deleteFile($item['image_path']);
+    if ($item_id <= 0) {
+        $error = 'Invalid item.';
+    } elseif ($action === 'mark_returned') {
+        $conn->begin_transaction();
+        try {
+            $stmt = $conn->prepare("
+                SELECT c.claim_id, c.claimant_id, i.item_name
+                FROM claims c
+                JOIN items i ON c.item_id = i.item_id
+                WHERE c.item_id = ? AND c.claim_status = 'approved'
+                ORDER BY c.created_at DESC LIMIT 1
+            ");
+            $stmt->bind_param("i", $item_id);
+            $stmt->execute();
+            $claim = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            $stmt = $conn->prepare("UPDATE items SET status='returned' WHERE item_id=?");
+            $stmt->bind_param("i", $item_id);
+            $stmt->execute();
+            $stmt->close();
+
+            if ($claim) {
+                $stmt = $conn->prepare("UPDATE claims SET claim_status='completed', admin_notes=CONCAT(IFNULL(admin_notes,''), ' [Marked returned by admin]') WHERE claim_id=?");
+                $stmt->bind_param("i", $claim['claim_id']);
+                $stmt->execute();
+                $stmt->close();
+
+                sendNotification(
+                    $claim['claimant_id'],
+                    $item_id,
+                    'item_returned',
+                    "The item '{$claim['item_name']}' has been marked as returned. Thank you for coordinating with the Organization Office."
+                );
+            }
+
+            $stmt = $conn->prepare("
+                UPDATE claims 
+                SET claim_status='rejected', 
+                    admin_notes=CONCAT(IFNULL(admin_notes,''), ' [Auto-rejected: item already returned]')
+                WHERE item_id=? AND claim_status IN ('pending','approved')
+            ");
+            $stmt->bind_param("i", $item_id);
+            $stmt->execute();
+            $stmt->close();
+
+            logActivity($_SESSION['user_id'], 'mark_returned', "Marked item #$item_id returned from items page");
+            $conn->commit();
+            $message = 'Item marked as returned.';
+        } catch (Exception $e) {
+            $conn->rollback();
+            $error = 'Could not mark item as returned.';
+        }
+    } elseif (in_array($new_status, ['pending','returned','claimed','donated','expired'])) {
+        $stmt = $conn->prepare("UPDATE items SET status=? WHERE item_id=?");
+        $stmt->bind_param("si", $new_status, $item_id);
+        $stmt->execute();
+        $stmt->close();
+        logActivity($_SESSION['user_id'], 'update_item_status', "Item #$item_id status changed to $new_status");
+        $message = 'Item status updated.';
+    } else {
+        $error = 'Invalid status.';
     }
-    
-    $stmt = $conn->prepare("DELETE FROM items WHERE item_id = ?");
-    $stmt->bind_param("i", $item_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    logActivity($_SESSION['user_id'], 'delete_item', "Deleted item $item_id");
-    
-    header("Location: items.php");
-    exit();
 }
 
-// Get filter parameters (Changed donated to archived)
-$status_filter = isset($_GET['status']) && in_array($_GET['status'], ['pending', 'claimed', 'archived', 'expired'], true) ? $_GET['status'] : '';
-$type_filter = isset($_GET['type']) && in_array($_GET['type'], ['lost', 'found'], true) ? $_GET['type'] : '';
-
-// Build query
-$where = "WHERE 1=1";
-if (!empty($status_filter)) {
-    $where .= " AND status = '$status_filter'";
-}
-if (!empty($type_filter)) {
-    $where .= " AND item_type = '$type_filter'";
-}
-
-$query = "SELECT i.*, c.category_name, u.full_name, u.student_id 
-          FROM items i 
-          JOIN categories c ON i.category_id = c.category_id 
-          JOIN users u ON i.user_id = u.user_id 
-          $where 
-          ORDER BY i.created_at DESC";
-$items = $conn->query($query);
+$items = $conn->query("
+    SELECT i.*, c.category_name, u.full_name AS reporter
+    FROM items i
+    LEFT JOIN categories c ON i.category_id = c.category_id
+    LEFT JOIN users u ON i.user_id = u.user_id
+    ORDER BY i.created_at DESC
+");
 
 $conn->close();
 ?>
@@ -75,161 +97,91 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Items - iFindPeace Admin</title>
-    <link rel="icon" type="image/jpeg" href="../assets/images/msu-logo.jpg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
-    <link href="../assets/css/sidebar.css" rel="stylesheet">
 </head>
-<body class="sidebar-layout">
+<body>
+<?php include 'includes/sidebar.php'; ?>
 
-    <?php include 'includes/sidebar.php'; ?>
+<div class="main-content p-4">
+    <h2 class="mb-4"><i class="fas fa-box me-2"></i>Manage Items</h2>
 
-    <div class="main-content">
-        <div class="topbar">
-            <div class="topbar-left">
-                <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <!-- Fixed Visibility: Changed text-white to text-dark -->
-                <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
-                    <img src="../assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
-                    <div>
-                        <small class="text-dark" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">MINDANAO STATE UNIVERSITY</small>
-                        <br>
-                        <small class="text-secondary" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">GENERAL SANTOS</small>
-                    </div>
-                </div>
-            </div>
-            <div class="topbar-right">
-                <div class="topbar-user">
-                    <i class="fas fa-user-shield"></i>
-                    <?php echo htmlspecialchars($_SESSION['full_name']); ?>
-                </div>
-            </div>
+    <div class="alert alert-warning border-warning">
+        <strong><i class="fas fa-info-circle me-2"></i>Drop-off point:</strong>
+        Found items must be surrendered to the <strong>Organization Office</strong>. Claimants pick them up there after admin approval.
+        Use <strong>Mark Returned</strong> only after the item is physically handed over.
+    </div>
+
+    <?php if ($message): ?><div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
+
+    <div class="card shadow">
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Reporter</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php while ($item = $items->fetch_assoc()): ?>
+                    <tr>
+                        <td>#<?php echo $item['item_id']; ?></td>
+                        <td>
+                            <strong><?php echo htmlspecialchars($item['item_name']); ?></strong><br>
+                            <small class="text-muted"><?php echo htmlspecialchars($item['location_lost'] ?? $item['location_found'] ?? ''); ?></small>
+                        </td>
+                        <td><?php echo ucfirst($item['item_type']); ?></td>
+                        <td><?php echo htmlspecialchars($item['category_name'] ?? 'N/A'); ?></td>
+                        <td><?php echo htmlspecialchars($item['reporter'] ?? 'N/A'); ?></td>
+                        <td>
+                            <?php
+                            $badge = 'secondary';
+                            if ($item['status'] === 'pending') $badge = 'warning text-dark';
+                            if ($item['status'] === 'returned') $badge = 'success';
+                            if ($item['status'] === 'claimed') $badge = 'info text-dark';
+                            ?>
+                            <span class="badge bg-<?php echo $badge; ?>"><?php echo ucfirst($item['status']); ?></span>
+                        </td>
+                        <td style="min-width:300px;">
+                            <?php if ($item['status'] !== 'returned'): ?>
+                                <form method="POST" class="d-flex gap-1 mb-2">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                    <select name="status" class="form-select form-select-sm">
+                                        <?php foreach (['pending','returned','claimed','donated','expired'] as $s): ?>
+                                            <option value="<?php echo $s; ?>" <?php echo $item['status'] === $s ? 'selected' : ''; ?>>
+                                                <?php echo ucfirst($s); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-primary">Update</button>
+                                </form>
+                                <form method="POST">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                    <input type="hidden" name="action" value="mark_returned">
+                                    <button class="btn btn-sm btn-success w-100" onclick="return confirm('Mark this item as RETURNED? Confirm handover at the Organization Office.')">
+                                        <i class="fas fa-hand-holding-heart me-1"></i>Mark Returned
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <span class="text-success small"><i class="fas fa-check-circle me-1"></i>Returned</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+                </tbody>
+            </table>
         </div>
+    </div>
+</div>
 
-        <div class="page-content">
-        <div class="row mb-3">
-            <div class="col-12">
-                <h2 class="fw-bold">Manage Items</h2>
-                <p class="text-muted">View and manage all reported items</p>
-            </div>
-        </div>
-
-        <!-- Drop-off Reminder for Admin -->
-        <div class="alert alert-warning border-warning mb-3">
-            <i class="fas fa-info-circle me-2"></i> <strong>Workflow Reminder:</strong> Change an item's status to <strong>Claimed</strong> only after the claimant has picked it up from the Organization Office.
-        </div>
-
-        <!-- Filters -->
-        <div class="filter-section mb-4">
-            <form method="GET" class="row g-3">
-                <div class="col-md-4">
-                    <select name="status" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                        <option value="claimed" <?php echo $status_filter === 'claimed' ? 'selected' : ''; ?>>Claimed</option>
-                        <option value="archived" <?php echo $status_filter === 'archived' ? 'selected' : ''; ?>>Archived</option>
-                        <option value="expired" <?php echo $status_filter === 'expired' ? 'selected' : ''; ?>>Expired</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <select name="type" class="form-select">
-                        <option value="">All Types</option>
-                        <option value="lost" <?php echo $type_filter === 'lost' ? 'selected' : ''; ?>>Lost</option>
-                        <option value="found" <?php echo $type_filter === 'found' ? 'selected' : ''; ?>>Found</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Filter
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <?php if ($items->num_rows > 0): ?>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Type</th>
-                            <th>Category</th>
-                            <th>Posted By</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($item = $items->fetch_assoc()): ?>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <?php if ($item['image_path']): ?>
-                                            <img src="../uploads/<?php echo htmlspecialchars($item['image_path']); ?>" class="rounded me-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                        <?php else: ?>
-                                            <div class="rounded bg-light d-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px;">
-                                                <i class="fas fa-image text-muted"></i>
-                                            </div>
-                                        <?php endif; ?>
-                                        <div>
-                                            <strong><?php echo htmlspecialchars($item['item_name']); ?></strong>
-                                            <br>
-                                            <small class="text-muted"><?php echo htmlspecialchars(substr($item['description'], 0, 40)); ?>...</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge <?php echo $item['item_type'] == 'lost' ? 'badge-lost' : 'badge-found'; ?>">
-                                        <?php echo strtoupper($item['item_type']); ?>
-                                    </span>
-                                </td>
-                                <td><?php echo htmlspecialchars($item['category_name']); ?></td>
-                                <td>
-                                    <small><?php echo htmlspecialchars($item['full_name']); ?></small>
-                                    <br>
-                                    <small class="text-muted"><?php echo htmlspecialchars($item['student_id']); ?></small>
-                                </td>
-                                <td>
-                                    <form method="POST" class="d-inline">
-                                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                                        <input type="hidden" name="update_status" value="1">
-                                        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                                            <option value="pending" <?php echo $item['status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                            <option value="claimed" <?php echo $item['status'] === 'claimed' ? 'selected' : ''; ?>>Claimed</option>
-                                            <option value="archived" <?php echo $item['status'] === 'archived' ? 'selected' : ''; ?>>Archived</option>
-                                            <option value="expired" <?php echo $item['status'] === 'expired' ? 'selected' : ''; ?>>Expired</option>
-                                        </select>
-                                    </form>
-                                </td>
-                                <td><?php echo date('M d, Y', strtotime($item['created_at'])); ?></td>
-                                <td>
-                                    <a href="../item-details.php?id=<?php echo $item['item_id']; ?>" class="btn btn-sm btn-primary" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="items.php?delete=<?php echo $item['item_id']; ?>" class="btn btn-sm btn-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this item?');">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-box-open fa-4x"></i>
-                <h4>No items found</h4>
-                <p>Try adjusting your filters</p>
-            </div>
-        <?php endif; ?>
-        </div><!-- end page-content -->
-    </div><!-- end main-content -->
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/sidebar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

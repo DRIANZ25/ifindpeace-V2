@@ -1,76 +1,118 @@
 <?php
 require_once '../config/config.php';
-requireAdmin();
+requireLogin();
 
-$conn = getDBConnection();
-
-// Handle claim status update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_claim'])) {
-    $claim_id = intval($_POST['claim_id']);
-    $status = sanitize($_POST['status']);
-    $admin_notes = sanitize($_POST['admin_notes']);
-    
-    // 1. Update the claim status
-    $stmt = $conn->prepare("UPDATE claims SET claim_status = ?, admin_notes = ? WHERE claim_id = ?");
-    $stmt->bind_param("ssi", $status, $admin_notes, $claim_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    // 2. Get claim details to update the ITEM status as well
-    $claim_query = "SELECT cl.*, i.item_id, i.item_name, i.user_id as item_owner_id, cl.user_id as claimant_id 
-                    FROM claims cl 
-                    JOIN items i ON cl.item_id = i.item_id 
-                    WHERE cl.claim_id = ?";
-    $stmt = $conn->prepare($claim_query);
-    $stmt->bind_param("i", $claim_id);
-    $stmt->execute();
-    $claim = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    
-    // 3. If admin approves or completes the claim, mark the ITEM as claimed
-    if ($status === 'approved' || $status === 'completed') {
-        $item_id = $claim['item_id'];
-        $conn->query("UPDATE items SET status = 'claimed' WHERE item_id = $item_id");
-    }
-    
-    // 4. Notify the claimant
-    if ($status === 'approved') {
-        sendNotification($claim['claimant_id'], $claim['item_id'], 'claim_approved', "Your claim for '{$claim['item_name']}' has been approved! Please proceed to the Organization Office with your ID to pick it up.");
-    } elseif ($status === 'rejected') {
-        sendNotification($claim['claimant_id'], $claim['item_id'], 'claim_rejected', "Your claim for '{$claim['item_name']}' has been rejected.");
-    } elseif ($status === 'completed') {
-        sendNotification($claim['claimant_id'], $claim['item_id'], 'item_returned', "Your claim for '{$claim['item_name']}' is completed. Thank you!");
-    }
-    
-    logActivity($_SESSION['user_id'], 'update_claim_status', "Updated claim $claim_id status to $status");
-    
-    header("Location: claims.php");
+if (!isAdmin()) {
+    header("Location: ../dashboard.php");
     exit();
 }
 
-// Get filter parameters
-$status_filter = isset($_GET['status']) ? sanitize($_GET['status']) : '';
+$conn = getDBConnection();
+$message = '';
+$error = '';
 
-// Build query
-$where = "WHERE 1=1";
-if (!empty($status_filter)) {
-    $where .= " AND cl.claim_status = '$status_filter'";
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $claim_id = intval($_POST['claim_id'] ?? 0);
+    $action = $_POST['action'] ?? '';
+    $admin_notes = sanitize($_POST['admin_notes'] ?? '');
 
-$query = "SELECT cl.*, i.item_name, i.item_type, u.full_name as claimant_name, u.student_id as claimant_id, u2.full_name as reporter_name
-          FROM claims cl
-          JOIN items i ON cl.item_id = i.item_id
-          JOIN users u ON cl.user_id = u.user_id
-          JOIN users u2 ON i.user_id = u2.user_id
-          $where
-          ORDER BY cl.claim_date DESC";
-$claims = $conn->query($query);
-$claim_rows = [];
-if ($claims) {
-    while ($row = $claims->fetch_assoc()) {
-        $claim_rows[] = $row;
+    if ($claim_id <= 0) {
+        $error = 'Invalid claim.';
+    } else {
+        $stmt = $conn->prepare("
+            SELECT c.*, i.item_id, i.item_name, i.user_id AS owner_id
+            FROM claims c
+            JOIN items i ON c.item_id = i.item_id
+            WHERE c.claim_id = ?
+        ");
+        $stmt->bind_param("i", $claim_id);
+        $stmt->execute();
+        $claim = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$claim) {
+            $error = 'Claim not found.';
+        } elseif ($action === 'approve') {
+            $stmt = $conn->prepare("UPDATE claims SET claim_status='approved', admin_notes=? WHERE claim_id=?");
+            $stmt->bind_param("si", $admin_notes, $claim_id);
+            $stmt->execute();
+            $stmt->close();
+
+            sendNotification(
+                $claim['claimant_id'],
+                $claim['item_id'],
+                'claim_approved',
+                "Your claim for '{$claim['item_name']}' has been approved. Please pick it up at the Organization Office. Bring a valid ID."
+            );
+            logActivity($_SESSION['user_id'], 'approve_claim', "Approved claim #$claim_id");
+            $message = 'Claim approved. The claimant was told to pick up the item at the Organization Office.';
+        } elseif ($action === 'reject') {
+            $stmt = $conn->prepare("UPDATE claims SET claim_status='rejected', admin_notes=? WHERE claim_id=?");
+            $stmt->bind_param("si", $admin_notes, $claim_id);
+            $stmt->execute();
+            $stmt->close();
+
+            sendNotification(
+                $claim['claimant_id'],
+                $claim['item_id'],
+                'claim_rejected',
+                "Your claim for '{$claim['item_name']}' was not approved. Please contact the Organization Office for details."
+            );
+            logActivity($_SESSION['user_id'], 'reject_claim', "Rejected claim #$claim_id");
+            $message = 'Claim rejected.';
+        } elseif ($action === 'returned') {
+            $conn->begin_transaction();
+            try {
+                $stmt = $conn->prepare("UPDATE claims SET claim_status='completed', admin_notes=? WHERE claim_id=?");
+                $stmt->bind_param("si", $admin_notes, $claim_id);
+                $stmt->execute();
+                $stmt->close();
+
+                $stmt = $conn->prepare("UPDATE items SET status='returned' WHERE item_id=?");
+                $stmt->bind_param("i", $claim['item_id']);
+                $stmt->execute();
+                $stmt->close();
+
+                $stmt = $conn->prepare("
+                    UPDATE claims 
+                    SET claim_status='rejected', 
+                        admin_notes=CONCAT(IFNULL(admin_notes,''), ' [Auto-rejected: item already returned]')
+                    WHERE item_id=? AND claim_id<>? AND claim_status IN ('pending','approved')
+                ");
+                $stmt->bind_param("ii", $claim['item_id'], $claim_id);
+                $stmt->execute();
+                $stmt->close();
+
+                sendNotification(
+                    $claim['claimant_id'],
+                    $claim['item_id'],
+                    'item_returned',
+                    "The item '{$claim['item_name']}' has been marked as returned. Thank you for coordinating with the Organization Office."
+                );
+
+                logActivity($_SESSION['user_id'], 'mark_returned', "Marked item #{$claim['item_id']} returned via claim #$claim_id");
+                $conn->commit();
+                $message = 'Item marked as returned. Other pending claims for this item were rejected.';
+            } catch (Exception $e) {
+                $conn->rollback();
+                $error = 'Could not mark item as returned. Please try again.';
+            }
+        }
     }
 }
+
+$claims = $conn->query("
+    SELECT c.*, 
+           i.item_name, i.item_type, i.status AS item_status,
+           cat.category_name,
+           u.full_name AS claimant_name, u.email
+    FROM claims c
+    JOIN items i ON c.item_id = i.item_id
+    JOIN users u ON c.claimant_id = u.user_id
+    LEFT JOIN categories cat ON i.category_id = cat.category_id
+    ORDER BY FIELD(c.claim_status,'pending','approved','completed','rejected'), c.created_at DESC
+");
+
 $conn->close();
 ?>
 <!DOCTYPE html>
@@ -79,197 +121,108 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Claims - iFindPeace Admin</title>
-    <link rel="icon" type="image/jpeg" href="../assets/images/msu-logo.jpg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
-    <link href="../assets/css/sidebar.css" rel="stylesheet">
 </head>
-<body class="sidebar-layout">
+<body>
+<?php include 'includes/sidebar.php'; ?>
 
-    <?php include 'includes/sidebar.php'; ?>
+<div class="main-content p-4">
+    <h2 class="mb-4"><i class="fas fa-clipboard-check me-2"></i>Manage Claims</h2>
 
-    <div class="main-content">
-        <div class="topbar">
-            <div class="topbar-left">
-                <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
-                    <img src="../assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
-                    <div>
-                        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">MINDANAO STATE UNIVERSITY</small>
-                        <br>
-                        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">GENERAL SANTOS</small>
-                    </div>
-                </div>
-            </div>
-            <div class="topbar-right">
-                <div class="topbar-user">
-                    <i class="fas fa-user-shield"></i>
-                    <?php echo htmlspecialchars($_SESSION['full_name']); ?>
-                </div>
-            </div>
-        </div>
-
-        <div class="page-content">
-        <div class="row mb-4">
-            <div class="col-12">
-                <h2 class="fw-bold">Manage Claims</h2>
-                <p class="text-muted">Review and manage item claims</p>
-            </div>
-        </div>
-
-        <!-- Drop-off Reminder for Admin -->
-        <div class="alert alert-info border-info mb-4">
-            <h6 class="fw-bold mb-1"><i class="fas fa-building me-2"></i>Admin Drop-off Point Reminder</h6>
-            <p class="mb-0 small">Do not approve claims unless the claimant has physically arrived at the <strong>Organization Office</strong> to verify their identity and pick up the item. Once handed over, set the status to <strong>Completed</strong>.</p>
-        </div>
-
-        <!-- Filters -->
-        <div class="filter-section mb-4">
-            <form method="GET" class="row g-3">
-                <div class="col-md-4">
-                    <select name="status" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                        <option value="approved" <?php echo $status_filter === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                        <option value="rejected" <?php echo $status_filter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                        <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Completed</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Filter
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <?php if (!empty($claim_rows)): ?>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Claimant</th>
-                            <th>Reporter</th>
-                            <th>Security Question</th>
-                            <th>Status</th>
-                            <th>Deadline</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($claim_rows as $claim): ?>
-                            <tr>
-                                <td>
-                                    <strong><?php echo htmlspecialchars($claim['item_name']); ?></strong>
-                                    <br>
-                                    <small class="text-muted"><?php echo strtoupper($claim['item_type']); ?></small>
-                                </td>
-                                <td>
-                                    <?php echo htmlspecialchars($claim['claimant_name']); ?>
-                                    <br>
-                                    <small class="text-muted"><?php echo htmlspecialchars($claim['claimant_id']); ?></small>
-                                </td>
-                                <td>
-                                    <?php echo htmlspecialchars($claim['reporter_name']); ?>
-                                </td>
-                                <td>
-                                    <small><?php echo htmlspecialchars($claim['security_question']); ?></small>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php echo $claim['claim_status'] == 'pending' ? 'warning' : ($claim['claim_status'] == 'approved' ? 'success' : ($claim['claim_status'] == 'rejected' ? 'danger' : 'info')); ?>">
-                                        <?php echo ucfirst($claim['claim_status']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <small><?php echo date('M d, Y', strtotime($claim['deadline'])); ?></small>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#claimModal<?php echo $claim['claim_id']; ?>">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <?php if ($claim['id_proof_path']): ?>
-                                        <a href="../uploads/<?php echo htmlspecialchars($claim['id_proof_path']); ?>" target="_blank" class="btn btn-sm btn-info text-white">
-                                            <i class="fas fa-file"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-hand-paper fa-4x"></i>
-                <h4>No claims found</h4>
-                <p>Try adjusting your filters</p>
-            </div>
-        <?php endif; ?>
+    <div class="alert alert-warning border-warning">
+        <strong><i class="fas fa-info-circle me-2"></i>Organization Office drop-off / pickup point:</strong>
+        All found items must be surrendered to the Organization Office. Claimants must pick up approved items there.
+        Mark an item as <strong>Returned</strong> only after the physical handover at the office.
     </div>
 
-    <!-- Claim Modals -->
-    <?php if (!empty($claim_rows)): foreach ($claim_rows as $claim): ?>
-        <div class="modal fade" id="claimModal<?php echo $claim['claim_id']; ?>" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Update Claim Status</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form method="POST">
-                            <input type="hidden" name="claim_id" value="<?php echo $claim['claim_id']; ?>">
-                            <input type="hidden" name="update_claim" value="1">
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Item</label>
-                                <input type="text" class="form-control" value="<?php echo htmlspecialchars($claim['item_name']); ?>" readonly>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Claimant</label>
-                                <input type="text" class="form-control" value="<?php echo htmlspecialchars($claim['claimant_name']); ?>" readonly>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Security Question</label>
-                                <input type="text" class="form-control" value="<?php echo htmlspecialchars($claim['security_question']); ?>" readonly>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Security Answer</label>
-                                <input type="text" class="form-control" value="<?php echo htmlspecialchars($claim['security_answer']); ?>" readonly>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-select" required>
-                                    <option value="pending" <?php echo $claim['claim_status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="approved" <?php echo $claim['claim_status'] === 'approved' ? 'selected' : ''; ?>>Approved (Waiting for pickup)</option>
-                                    <option value="rejected" <?php echo $claim['claim_status'] === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                                    <option value="completed" <?php echo $claim['claim_status'] === 'completed' ? 'selected' : ''; ?>>Completed (Item Handed Over)</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Admin Notes</label>
-                                <textarea name="admin_notes" class="form-control" rows="3"><?php echo htmlspecialchars($claim['admin_notes'] ?? ''); ?></textarea>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-save me-2"></i>Update Claim
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <?php endforeach; endif; ?>
+    <?php if ($message): ?>
+        <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
+    <?php endif; ?>
+    <?php if ($error): ?>
+        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+    <?php endif; ?>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="card shadow">
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Item</th>
+                        <th>Claimant</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Admin Notes</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php while ($c = $claims->fetch_assoc()): ?>
+                    <tr>
+                        <td>#<?php echo $c['claim_id']; ?></td>
+                        <td>
+                            <strong><?php echo htmlspecialchars($c['item_name']); ?></strong><br>
+                            <small class="text-muted"><?php echo ucfirst($c['item_type']); ?></small>
+                        </td>
+                        <td>
+                            <?php echo htmlspecialchars($c['claimant_name']); ?><br>
+                            <small><?php echo htmlspecialchars($c['email']); ?></small>
+                        </td>
+                        <td><?php echo htmlspecialchars($c['category_name'] ?? 'N/A'); ?></td>
+                        <td>
+                            <?php
+                            $badge = 'secondary';
+                            if ($c['claim_status'] === 'pending') $badge = 'warning text-dark';
+                            if ($c['claim_status'] === 'approved') $badge = 'info text-dark';
+                            if ($c['claim_status'] === 'completed') $badge = 'success';
+                            if ($c['claim_status'] === 'rejected') $badge = 'danger';
+                            ?>
+                            <span class="badge bg-<?php echo $badge; ?>"><?php echo ucfirst($c['claim_status']); ?></span>
+                        </td>
+                        <td style="max-width:220px;"><?php echo nl2br(htmlspecialchars($c['admin_notes'] ?? '')); ?></td>
+                        <td><?php echo date('M d, Y', strtotime($c['created_at'])); ?></td>
+                        <td style="min-width:260px;">
+                            <?php if ($c['claim_status'] === 'pending'): ?>
+                                <form method="POST" class="mb-2">
+                                    <input type="hidden" name="claim_id" value="<?php echo $c['claim_id']; ?>">
+                                    <input type="hidden" name="action" value="approve">
+                                    <textarea name="admin_notes" class="form-control form-control-sm mb-1" placeholder="Notes (optional)"></textarea>
+                                    <button class="btn btn-sm btn-success w-100 mb-1" onclick="return confirm('Approve this claim? The claimant will be told to pick up at the Organization Office.')">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <form method="POST">
+                                    <input type="hidden" name="claim_id" value="<?php echo $c['claim_id']; ?>">
+                                    <input type="hidden" name="action" value="reject">
+                                    <textarea name="admin_notes" class="form-control form-control-sm mb-1" placeholder="Reason for rejection"></textarea>
+                                    <button class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Reject this claim?')">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
+                                </form>
+                            <?php elseif ($c['claim_status'] === 'approved'): ?>
+                                <form method="POST">
+                                    <input type="hidden" name="claim_id" value="<?php echo $c['claim_id']; ?>">
+                                    <input type="hidden" name="action" value="returned">
+                                    <textarea name="admin_notes" class="form-control form-control-sm mb-1" placeholder="Handover notes"></textarea>
+                                    <button class="btn btn-sm btn-primary w-100" onclick="return confirm('Mark this item as RETURNED? This confirms the item was handed over at the Organization Office.')">
+                                        <i class="fas fa-hand-holding-heart me-1"></i>Mark Returned
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <span class="text-muted small">No action needed</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

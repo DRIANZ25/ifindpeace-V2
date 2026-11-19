@@ -12,9 +12,9 @@ $stats = [
     'returned_items' => $conn->query("SELECT COUNT(*) as count FROM items WHERE status = 'returned'")->fetch_assoc()['count'],
     'total_users' => $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'],
     'total_claims' => $conn->query("SELECT COUNT(*) as count FROM claims")->fetch_assoc()['count'],
-    // FIXED: Changed claim_status to status to prevent the fatal error
-    'approved_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE status = 'approved'")->fetch_assoc()['count'],
-    'completed_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE status = 'completed'")->fetch_assoc()['count'],
+    // FIXED: Using claim_status for the claims table
+    'approved_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE claim_status = 'approved'")->fetch_assoc()['count'],
+    'completed_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE claim_status = 'completed'")->fetch_assoc()['count'],
 ];
 
 // Items by category
