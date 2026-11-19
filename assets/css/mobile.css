@@ -407,3 +407,25 @@ input, select, textarea {
     scroll-behavior: auto !important;
   }
 }
+/* ============================================================
+   URGENT FIX: Z-INDEX FOR MOBILE SIDEBAR TAPS
+   ============================================================ */
+@media (max-width: 991.98px) {
+    /* 1. Put the sidebar on top of the overlay */
+    .sidebar, .sidebar.open {
+        z-index: 1050 !important; 
+    }
+    
+    /* 2. Keep the overlay behind the sidebar, but above the page */
+    .sidebar-overlay {
+        z-index: 1040 !important; 
+    }
+    .sidebar-overlay.active {
+        z-index: 1040 !important; 
+    }
+    
+    /* 3. Keep the top navbar above everything */
+    .topbar {
+        z-index: 1060 !important; 
+    }
+}
