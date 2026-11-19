@@ -1,13 +1,12 @@
 <?php
 require_once 'config/config.php';
 
-// Get recent items
+// Get recent items (Removed the WHERE clause so returned items still show up)
 $conn = getDBConnection();
 $recent_items_query = "SELECT i.*, c.category_name, u.full_name, u.student_id 
                       FROM items i 
                       JOIN categories c ON i.category_id = c.category_id 
                       JOIN users u ON i.user_id = u.user_id 
-                      WHERE i.status = 'pending' 
                       ORDER BY i.created_at DESC 
                       LIMIT 8";
 $recent_items = $conn->query($recent_items_query);
@@ -252,6 +251,23 @@ $conn->close();
                                             <i class="fas fa-image fa-3x text-muted" style="opacity: 0.3;"></i>
                                         </div>
                                     <?php endif; ?>
+                                    
+                                    <!-- Status Indicator (Pending / Returned) -->
+                                    <?php
+                                    $status_class = 'bg-warning text-dark';
+                                    $status_text = 'Pending';
+                                    if ($item['status'] == 'claimed' || $item['status'] == 'returned') {
+                                        $status_class = 'bg-success';
+                                        $status_text = 'Returned';
+                                    }
+                                    ?>
+                                    <div style="position: absolute; top: 10px; left: 10px; z-index: 2;">
+                                        <span class="badge <?php echo $status_class; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                                            <?php echo $status_text; ?>
+                                        </span>
+                                    </div>
+
+                                    <!-- Item Type (Lost / Found) -->
                                     <div class="card-badge" style="position: absolute; top: 10px; right: 10px; z-index: 2;">
                                         <span class="badge <?php echo $item['item_type'] == 'lost' ? 'badge-lost' : 'badge-found'; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                                             <?php echo strtoupper($item['item_type']); ?>
