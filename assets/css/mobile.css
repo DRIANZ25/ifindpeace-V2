@@ -819,3 +819,72 @@ input, select, textarea {
     scroll-behavior: auto !important;
   }
 }
+/* ============================================================
+   DASHBOARD MOBILE FIXES (Smaller cards & buttons)
+   ============================================================ */
+@media (max-width: 767px) {
+    /* 1. Make the Topbar user pill smaller */
+    .topbar-user {
+        padding: 0.3rem 0.8rem !important;
+        font-size: 0.75rem !important;
+        border-radius: 50px !important;
+    }
+
+    /* 2. Fix the Stat Cards (Make them shorter) */
+    .stat-card {
+        padding: 0.8rem 0.5rem !important; /* Less padding top/bottom */
+        border-radius: 12px !important;
+    }
+    
+    .stat-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.85rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem !important; /* Smaller numbers */
+    }
+    
+    .stat-label {
+        font-size: 0.65rem !important;
+        letter-spacing: 0px !important;
+        margin-bottom: 0.4rem !important;
+    }
+
+    /* 3. Fix the "View" buttons inside the Stat Cards */
+    .stat-card .btn {
+        padding: 0.2rem 0.8rem !important;
+        font-size: 0.65rem !important;
+        border-width: 1px !important; /* Fixes the thick ugly border */
+        border-radius: 50px !important;
+        margin-top: 0 !important;
+    }
+
+    /* 4. Make Quick Action buttons smaller */
+    .quick-btn {
+        padding: 0.6rem 0.5rem !important;
+        font-size: 0.75rem !important;
+        gap: 0.3rem !important;
+        border-radius: 10px !important;
+    }
+    
+    .quick-btn i {
+        font-size: 0.8rem !important;
+    }
+
+    /* 5. Fix the Welcome Banner spacing */
+    .welcome-banner {
+        padding: 1.2rem !important;
+        border-radius: 14px !important;
+    }
+    
+    .welcome-banner h2 {
+        font-size: 1.1rem !important;
+    }
+    
+    .welcome-banner p {
+        font-size: 0.75rem !important;
+    }
+}
