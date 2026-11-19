@@ -51,53 +51,54 @@ $conn->close();
     <link href="assets/css/style.css" rel="stylesheet">
     <style>
         :root {
-            --maroon-950: #2b040d;
-            --maroon-900: #4a0715;
-            --maroon: #800000;
-            --magenta: #d6249f;
-            --magenta-hot: #ff2bd6;
-            --blush: #fff1f7;
-            --paper: #fffaf6;
-            --ink: #2a0a14;
-            --muted: #7a5b66;
+            --blue-950: #0a1628;
+            --blue-900: #0f2444;
+            --blue: #1e40af;
+            --blue-mid: #2563eb;
+            --yellow: #eab308;
+            --yellow-hot: #facc15;
+            --sky: #eff6ff;
+            --paper: #f8fafc;
+            --ink: #0f172a;
+            --muted: #475569;
             --ease: cubic-bezier(.2, .8, .2, 1);
         }
 
         body { font-family: 'Instrument Sans', system-ui, sans-serif; color: var(--ink); background: var(--paper); }
         h1, h2, h3, h4, h5, h6, .navbar-brand, .stat-number { font-family: 'Bricolage Grotesque', 'Instrument Sans', sans-serif; }
-        :focus-visible { outline: 3px solid var(--magenta-hot); outline-offset: 2px; }
+        :focus-visible { outline: 3px solid var(--yellow-hot); outline-offset: 2px; }
 
         /* ---------- Navbar ---------- */
         body .navbar {
-            background: linear-gradient(100deg, var(--maroon-950) 0%, var(--maroon-900) 55%, #6b0a2c 100%);
-            border-bottom: 2px solid var(--magenta);
-            box-shadow: 0 6px 24px rgba(43, 4, 13, .35);
+            background: linear-gradient(100deg, var(--blue-950) 0%, var(--blue-900) 55%, #1e3a8a 100%);
+            border-bottom: 2px solid var(--yellow);
+            box-shadow: 0 6px 24px rgba(10, 22, 40, .35);
         }
         body .navbar .navbar-brand { font-weight: 800; font-size: 1.5rem; letter-spacing: -.5px; }
-        body .navbar .navbar-brand span { color: var(--magenta-hot); }
+        body .navbar .navbar-brand span { color: var(--yellow-hot); }
         body .navbar .nav-link { position: relative; font-weight: 600; opacity: .85; transition: opacity .2s; }
         body .navbar .nav-link::after {
             content: ''; position: absolute; left: 50%; bottom: 2px; width: 0; height: 2px;
-            background: var(--magenta-hot); transition: width .3s var(--ease), left .3s var(--ease);
+            background: var(--yellow-hot); transition: width .3s var(--ease), left .3s var(--ease);
         }
         body .navbar .nav-link:hover, body .navbar .nav-link.active { opacity: 1; }
         body .navbar .nav-link:hover::after, body .navbar .nav-link.active::after { width: 60%; left: 20%; }
         body .navbar .msu-logo-icon { height: 40px; width: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.85); }
         .btn-signup {
-            background: linear-gradient(135deg, var(--magenta) 0%, var(--magenta-hot) 100%);
-            color: #fff; border: none; padding: .5rem 1.25rem; font-weight: 700; border-radius: 50px;
+            background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow-hot) 100%);
+            color: #713f12; border: none; padding: .5rem 1.25rem; font-weight: 700; border-radius: 50px;
             transition: transform .2s var(--ease), box-shadow .2s;
         }
-        .btn-signup:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 43, 214, .4); }
+        .btn-signup:hover { color: #713f12; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 179, 8, .45); }
 
         /* ---------- Hero ---------- */
         .hero-lf {
             position: relative; overflow: hidden; color: #fff;
             padding: 5rem 0 6.5rem;
             background:
-                radial-gradient(900px 500px at 85% 10%, rgba(214, 36, 159, .45), transparent 60%),
-                radial-gradient(700px 500px at 0% 100%, rgba(128, 0, 0, .7), transparent 60%),
-                linear-gradient(160deg, var(--maroon-950), var(--maroon-900));
+                radial-gradient(900px 500px at 85% 10%, rgba(250, 204, 21, .35), transparent 60%),
+                radial-gradient(700px 500px at 0% 100%, rgba(30, 64, 175, .7), transparent 60%),
+                linear-gradient(160deg, var(--blue-950), var(--blue-900));
         }
         /* faint "route map" grid, like a campus map */
         .hero-lf::before {
@@ -121,33 +122,34 @@ $conn->close();
         .dropoff {
             display: flex; gap: .9rem; align-items: flex-start; max-width: 34rem;
             background: rgba(255, 255, 255, .08); backdrop-filter: blur(6px);
-            border: 1.5px dashed rgba(255, 255, 255, .45); border-radius: 14px; padding: .9rem 1.1rem;
+            border: 1.5px dashed rgba(250, 204, 21, .55); border-radius: 14px; padding: .9rem 1.1rem;
         }
-        .dropoff i { color: #ffd1ef; font-size: 1.25rem; margin-top: .15rem; }
+        .dropoff i { color: var(--yellow-hot); font-size: 1.25rem; margin-top: .15rem; }
         .dropoff p { margin: 0; font-size: .9rem; color: rgba(255,255,255,.9); }
 
         .search-pill {
             display: flex; max-width: 34rem; background: #fff; border-radius: 60px; padding: .35rem;
             box-shadow: 0 14px 40px rgba(0,0,0,.35); transition: box-shadow .3s;
         }
-        .search-pill:focus-within { box-shadow: 0 14px 40px rgba(255, 43, 214, .45); }
+        .search-pill:focus-within { box-shadow: 0 14px 40px rgba(250, 204, 21, .5); }
         .search-pill input { flex: 1; border: 0; outline: 0; background: transparent; padding: .7rem 1.25rem; font-size: 1rem; min-width: 0; color: var(--ink); }
         .search-pill button {
             border: 0; border-radius: 50px; padding: .7rem 1.6rem; font-weight: 700; color: #fff;
-            background: linear-gradient(135deg, var(--maroon), var(--magenta)); transition: transform .2s var(--ease);
+            background: linear-gradient(135deg, var(--blue), var(--yellow));
+            transition: transform .2s var(--ease), box-shadow .2s;
         }
-        .search-pill button:hover { transform: scale(1.04); }
+        .search-pill button:hover { transform: scale(1.04); box-shadow: 0 6px 18px rgba(30, 64, 175, .4); }
 
         .btn-report {
-            background: #fff; color: var(--maroon); font-weight: 700; border: 0; border-radius: 50px;
+            background: #fff; color: var(--blue); font-weight: 700; border: 0; border-radius: 50px;
             padding: .8rem 1.7rem; transition: transform .2s var(--ease), box-shadow .2s;
         }
-        .btn-report:hover { color: var(--maroon-900); transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.3); }
+        .btn-report:hover { color: var(--blue-900); transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.3); }
         .btn-found {
-            color: #fff; font-weight: 700; border: 2px solid rgba(255,255,255,.7); border-radius: 50px;
+            color: #fff; font-weight: 700; border: 2px solid var(--yellow-hot); border-radius: 50px;
             padding: .75rem 1.7rem; transition: background .2s, transform .2s var(--ease);
         }
-        .btn-found:hover { color: #fff; background: rgba(255, 43, 214, .35); transform: translateY(-3px); }
+        .btn-found:hover { color: #713f12; background: var(--yellow-hot); transform: translateY(-3px); }
 
         /* ---------- Claim tag (hero signature element) ---------- */
         .tag-wrap { display: flex; justify-content: center; padding-top: 1rem; }
@@ -159,7 +161,7 @@ $conn->close();
         .claim-tag.grabbed { cursor: grabbing; }
         .claim-tag::before { /* string */
             content: ''; position: absolute; left: 50%; top: -90px; width: 3px; height: 100px;
-            background: linear-gradient(#f4c6dd, #fff); transform: translateX(-50%); border-radius: 2px;
+            background: linear-gradient(#fde68a, #fff); transform: translateX(-50%); border-radius: 2px;
         }
         .tag-body {
             position: relative; background: var(--paper); color: var(--ink); border-radius: 18px;
@@ -168,16 +170,17 @@ $conn->close();
         }
         .tag-body::before { /* punched hole */
             content: ''; position: absolute; top: 14px; left: 50%; width: 22px; height: 22px; transform: translateX(-50%);
-            border-radius: 50%; background: var(--maroon-900); box-shadow: inset 0 2px 4px rgba(0,0,0,.6);
+            border-radius: 50%; background: var(--blue-900); box-shadow: inset 0 2px 4px rgba(0,0,0,.6);
         }
         .tag-label { font-size: .72rem; font-weight: 700; letter-spacing: 2px; color: var(--muted); }
         .tag-item { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 1.5rem; line-height: 1.1; margin: .3rem 0 1rem; overflow-wrap: anywhere; }
-        .tag-perf { border-top: 2px dashed #e7c3d3; margin: 1rem -1.5rem; position: relative; }
-        .tag-perf::before, .tag-perf::after { content: ''; position: absolute; top: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--maroon-900); }
+        .tag-perf { border-top: 2px dashed #bfdbfe; margin: 1rem -1.5rem; position: relative; }
+        .tag-perf::before, .tag-perf::after { content: ''; position: absolute; top: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--blue-900); }
         .tag-perf::before { left: -8px; } .tag-perf::after { right: -8px; }
         .tag-row { display: flex; justify-content: space-between; align-items: center; font-size: .82rem; color: var(--muted); }
         .tag-chip { font-weight: 800; font-size: .72rem; letter-spacing: 1.5px; padding: .3rem .8rem; border-radius: 50px; color: #fff; }
-        .tag-chip.lost { background: var(--maroon); } .tag-chip.found { background: var(--magenta); }
+        .tag-chip.lost { background: var(--blue); } 
+        .tag-chip.found { background: var(--yellow); color: #713f12; }
         .barcode { height: 34px; margin-top: 1rem; opacity: .75;
             background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 9px, var(--ink) 9px 12px, transparent 12px 14px); }
 
@@ -185,7 +188,7 @@ $conn->close();
         .tag-wrap { position: relative; padding-top: 110px; }
         .tag-anchor {
             position: absolute; top: 12px; left: 50%; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, #fff, #e8a9cf 45%, #8a1b5c); box-shadow: 0 3px 8px rgba(0, 0, 0, .5);
+            background: radial-gradient(circle at 35% 30%, #fff, #fde68a 45%, #b45309); box-shadow: 0 3px 8px rgba(0, 0, 0, .5);
         }
         .tag-hint {
             position: absolute; bottom: -2.6rem; left: 50%; display: flex; gap: .5rem; align-items: center; white-space: nowrap;
@@ -202,14 +205,14 @@ $conn->close();
         }
         .tag-label::before {
             content: ''; display: inline-block; width: 7px; height: 7px; margin-right: .5rem; border-radius: 50%;
-            background: var(--magenta); animation: pulse 1.8s infinite;
+            background: var(--yellow); animation: pulse 1.8s infinite;
         }
         .tag-chip { animation: chipGlow 2.4s ease-in-out infinite; }
-        @keyframes chipGlow { 50% { box-shadow: 0 0 14px rgba(255, 43, 214, .7); } }
+        @keyframes chipGlow { 50% { box-shadow: 0 0 14px rgba(250, 204, 21, .75); } }
         .barcode { position: relative; overflow: hidden; }
         .barcode::after { /* scanner line */
-            content: ''; position: absolute; top: 0; bottom: 0; width: 3px; background: var(--magenta-hot);
-            box-shadow: 0 0 10px var(--magenta-hot); animation: scan 2.6s ease-in-out infinite;
+            content: ''; position: absolute; top: 0; bottom: 0; width: 3px; background: var(--yellow-hot);
+            box-shadow: 0 0 10px var(--yellow-hot); animation: scan 2.6s ease-in-out infinite;
         }
         @keyframes scan { 0%, 100% { left: 0; } 50% { left: calc(100% - 3px); } }
         #sparkles { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
@@ -224,61 +227,92 @@ $conn->close();
         .stats-row { margin-top: -3.2rem; position: relative; z-index: 5; }
         .stub {
             position: relative; background: #fff; border-radius: 16px; padding: 1.3rem 1.2rem 1.1rem; text-align: center; height: 100%;
-            box-shadow: 0 12px 32px rgba(74, 7, 21, .12); border-top: 5px solid var(--c);
+            box-shadow: 0 12px 32px rgba(10, 22, 40, .12); border-top: 5px solid var(--c);
             transition: transform .3s var(--ease), box-shadow .3s;
+            animation: float 4s ease-in-out infinite;
         }
-        .stub:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(74, 7, 21, .2); }
+        .stats-row .row > div:nth-child(1) .stub { animation-delay: 0s; }
+        .stats-row .row > div:nth-child(2) .stub { animation-delay: .4s; }
+        .stats-row .row > div:nth-child(3) .stub { animation-delay: .8s; }
+        .stats-row .row > div:nth-child(4) .stub { animation-delay: 1.2s; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        .stub:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 18px 40px rgba(10, 22, 40, .2); }
         .stub::before, .stub::after { content: ''; position: absolute; top: 58%; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); }
         .stub::before { left: -8px; } .stub::after { right: -8px; }
         .stub .stat-number { font-size: 2.6rem; font-weight: 800; color: var(--c); line-height: 1; }
-        .stub .stat-label { margin-top: .5rem; padding-top: .6rem; border-top: 2px dashed #ecd2de; font-size: .85rem; font-weight: 600; color: var(--muted); }
+        .stub .stat-label { margin-top: .5rem; padding-top: .6rem; border-top: 2px dashed #dbeafe; font-size: .85rem; font-weight: 600; color: var(--muted); }
 
         /* ---------- Section heads ---------- */
-        .section-title { font-weight: 800; letter-spacing: -.8px; font-size: 1.9rem; color: var(--maroon-900); }
+        .section-title { font-weight: 800; letter-spacing: -.8px; font-size: 1.9rem; color: var(--blue-900); }
         .btn-maroon {
-            background: linear-gradient(135deg, var(--maroon), #a3123f); color: #fff; border: 0; border-radius: 50px; font-weight: 700;
+            background: linear-gradient(135deg, var(--blue), #1d4ed8); color: #fff; border: 0; border-radius: 50px; font-weight: 700;
             transition: transform .2s var(--ease), box-shadow .2s;
         }
-        .btn-maroon:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(128, 0, 0, .35); }
+        .btn-maroon:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30, 64, 175, .45); }
+        .btn-maroon:hover { animation: glowPulse 1.5s ease-in-out infinite; }
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 8px 20px rgba(30, 64, 175, .35); }
+            50% { box-shadow: 0 8px 30px rgba(30, 64, 175, .65); }
+        }
 
         /* ---------- Item cards: luggage-tag style ---------- */
         .item-tag {
             position: relative; background: #fff; border: 0; border-radius: 16px; overflow: hidden; height: 100%;
-            box-shadow: 0 6px 20px rgba(74, 7, 21, .09);
+            box-shadow: 0 6px 20px rgba(10, 22, 40, .09);
             transition: transform .3s var(--ease), box-shadow .3s;
         }
         .item-tag::before { /* type-colored spine */
             content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; z-index: 3; background: var(--c);
         }
-        .item-tag:hover { transform: translateY(-5px); box-shadow: 0 16px 36px rgba(128, 0, 0, .2); }
-        .item-tag .thumb { position: relative; height: 170px; overflow: hidden; background: var(--blush); }
+        .item-tag:hover { transform: translateY(-5px); box-shadow: 0 16px 36px rgba(30, 64, 175, .2); }
+        .item-tag .thumb { position: relative; height: 170px; overflow: hidden; background: var(--sky); }
         .item-tag .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
         .item-tag:hover .thumb img { transform: scale(1.07); }
-        .item-tag .thumb .ph { height: 100%; display: flex; align-items: center; justify-content: center; color: #d9a5bd; font-size: 2.6rem; }
+        .item-tag .thumb::after { /* shine sweep */
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; z-index: 1;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+            transition: left .7s ease; pointer-events: none;
+        }
+        .item-tag:hover .thumb::after { left: 100%; }
+        .item-tag .thumb .ph { height: 100%; display: flex; align-items: center; justify-content: center; color: #93c5fd; font-size: 2.6rem; }
         .pill { font-size: .68rem; font-weight: 800; letter-spacing: 1px; padding: .35rem .8rem; border-radius: 50px; color: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.2); }
-        .pill.lost { background: var(--maroon); } .pill.found { background: var(--magenta); }
-        .pill.pending { background: #ffe08a; color: #5a4300; } .pill.returned { background: #1f9d6b; }
+        .pill.lost { background: var(--blue); } 
+        .pill.found { background: var(--yellow); color: #713f12; }
+        .pill.pending { background: #fef08a; color: #713f12; } 
+        .pill.returned { background: #1f9d6b; }
         .item-tag .card-title { font-weight: 800; color: var(--ink); letter-spacing: -.3px; }
-        .meta-chip { background: var(--blush); color: var(--maroon); font-weight: 600; font-size: .75rem; border-radius: 50px; padding: .3rem .75rem; }
-        .item-tag .card-footer { background: transparent; border: 0; border-top: 2px dashed #f0d3e0; margin: 0 1rem; padding: .85rem 0; }
-        .btn-details { border: 2px solid var(--maroon); color: var(--maroon); font-weight: 700; border-radius: 50px; background: transparent; transition: background .2s, color .2s; }
-        .btn-details:hover { background: var(--maroon); color: #fff; }
+        .meta-chip { background: var(--sky); color: var(--blue); font-weight: 600; font-size: .75rem; border-radius: 50px; padding: .3rem .75rem; }
+        .item-tag .card-footer { background: transparent; border: 0; border-top: 2px dashed #dbeafe; margin: 0 1rem; padding: .85rem 0; }
+        .btn-details { border: 2px solid var(--blue); color: var(--blue); font-weight: 700; border-radius: 50px; background: transparent; transition: background .2s, color .2s; }
+        .btn-details:hover { background: var(--blue); color: #fff; }
+
+        /* staggered item entrance */
+        .recent-grid > div { animation: fadeUp .6s var(--ease) both; }
+        .recent-grid > div:nth-child(1) { animation-delay: .05s; }
+        .recent-grid > div:nth-child(2) { animation-delay: .12s; }
+        .recent-grid > div:nth-child(3) { animation-delay: .19s; }
+        .recent-grid > div:nth-child(4) { animation-delay: .26s; }
+        .recent-grid > div:nth-child(5) { animation-delay: .33s; }
+        .recent-grid > div:nth-child(6) { animation-delay: .4s; }
+        .recent-grid > div:nth-child(7) { animation-delay: .47s; }
+        .recent-grid > div:nth-child(8) { animation-delay: .54s; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
         /* ---------- History carousel ---------- */
         .history-panel { position: sticky; top: 90px; }
-        .history-panel .carousel { border-radius: 18px; box-shadow: 0 16px 40px rgba(74, 7, 21, .25); border: 4px solid #fff; }
+        .history-panel .carousel { border-radius: 18px; box-shadow: 0 16px 40px rgba(10, 22, 40, .25); border: 4px solid #fff; }
         .history-carousel-img { height: 320px; object-fit: cover; }
-        .carousel-caption { background: linear-gradient(transparent, rgba(43, 4, 13, .92)); left: 0; right: 0; bottom: 0; padding: 3rem 1.2rem 2.6rem; }
+        .carousel-caption { background: linear-gradient(transparent, rgba(10, 22, 40, .92)); left: 0; right: 0; bottom: 0; padding: 3rem 1.2rem 2.6rem; }
         .carousel-indicators [data-bs-target] { width: 8px; height: 8px; border-radius: 50%; border: 0; }
-        .carousel-indicators .active { background: var(--magenta-hot); }
-        .live-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--magenta-hot); margin-right: .45rem; animation: pulse 1.8s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 43, 214, .6); } 70%, 100% { box-shadow: 0 0 0 10px rgba(255, 43, 214, 0); } }
+        .carousel-indicators .active { background: var(--yellow-hot); }
+        .live-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--yellow-hot); margin-right: .45rem; animation: pulse 1.8s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, .6); } 70%, 100% { box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); } }
 
         /* ---------- Footer ---------- */
-        .footer-lf { background: linear-gradient(160deg, var(--maroon-950), var(--maroon-900)); color: rgba(255,255,255,.75); margin-top: 4rem; padding: 2.5rem 0; border-top: 3px solid var(--magenta); }
+        .footer-lf { background: linear-gradient(160deg, var(--blue-950), var(--blue-900)); color: rgba(255,255,255,.75); margin-top: 4rem; padding: 2.5rem 0; border-top: 3px solid var(--yellow); }
         .footer-lf img { height: 44px; width: 44px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.8); }
         .footer-lf .brand { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; color: #fff; font-size: 1.2rem; }
-        .footer-lf .brand span { color: var(--magenta-hot); }
+        .footer-lf .brand span { color: var(--yellow-hot); }
 
         @media (max-width: 991px) {
             .hero-lf { padding: 3.5rem 0 5.5rem; }
@@ -300,13 +334,13 @@ $conn->close();
                     <i class="fas fa-search-location me-2"></i>iFind<span>Peace</span>
                 </a>
                 <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
-                    <img src="assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
-                    <div>
-                        <small class="text-dark" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">College of Education</small>
-<br>
-<small class="text-dark" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">MSU-GenSan</small>
-                    </div>
-                </div>
+    <img src="assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
+    <div>
+        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">College of Education</small>
+        <br>
+        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">MSU-GenSan</small>
+    </div>
+</div>
             </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -433,13 +467,13 @@ $conn->close();
         <div class="container">
             <div class="row g-3">
                 <div class="col-6 col-md-3">
-                    <div class="stub" style="--c: var(--maroon);">
+                    <div class="stub" style="--c: var(--blue);">
                         <div class="stat-number" data-count="<?php echo (int)$stats['lost_count']; ?>">0</div>
                         <div class="stat-label">Lost items</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="stub" style="--c: var(--magenta);">
+                    <div class="stub" style="--c: var(--yellow);">
                         <div class="stat-number" data-count="<?php echo (int)$stats['found_count']; ?>">0</div>
                         <div class="stat-label">Found items</div>
                     </div>
@@ -451,7 +485,7 @@ $conn->close();
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="stub" style="--c: var(--maroon-900);">
+                    <div class="stub" style="--c: var(--blue-900);">
                         <div class="stat-number" data-count="<?php echo (int)$stats['user_count']; ?>">0</div>
                         <div class="stat-label">Registered users</div>
                     </div>
@@ -475,10 +509,10 @@ $conn->close();
                     </div>
 
                     <?php if ($recent_items->num_rows > 0): ?>
-                        <div class="row g-4">
+                        <div class="row g-4 recent-grid">
                             <?php while ($item = $recent_items->fetch_assoc()): 
                                 $is_returned = ($item['status'] == 'claimed' || $item['status'] == 'returned');
-                                $type_color = $item['item_type'] == 'lost' ? 'var(--maroon)' : 'var(--magenta)';
+                                $type_color = $item['item_type'] == 'lost' ? 'var(--blue)' : 'var(--yellow)';
                             ?>
                                 <div class="col-md-6">
                                     <div class="card item-tag" style="--c: <?php echo $type_color; ?>;">
@@ -508,7 +542,7 @@ $conn->close();
                                             <p class="card-text text-truncate mb-3 small text-muted"><?php echo htmlspecialchars($item['description']); ?></p>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="meta-chip"><i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($item['category_name']); ?></span>
-                                                <small class="text-muted"><i class="far fa-clock me-1" style="color: var(--magenta);"></i><?php echo date('M d', strtotime($item['created_at'])); ?></small>
+                                                <small class="text-muted"><i class="far fa-clock me-1" style="color: var(--yellow);"></i><?php echo date('M d', strtotime($item['created_at'])); ?></small>
                                             </div>
                                         </div>
                                         <div class="card-footer">
@@ -519,8 +553,8 @@ $conn->close();
                             <?php endwhile; ?>
                         </div>
                     <?php else: ?>
-                        <div class="bg-white rounded-4 p-5 text-center shadow-sm" style="border: 2px dashed #ecc5d8;">
-                            <i class="fas fa-box-open fa-3x mb-3" style="color: var(--magenta); opacity: .5;"></i>
+                        <div class="bg-white rounded-4 p-5 text-center shadow-sm" style="border: 2px dashed #bfdbfe;">
+                            <i class="fas fa-box-open fa-3x mb-3" style="color: var(--yellow); opacity: .5;"></i>
                             <h5>No items reported yet</h5>
                             <a href="report.php" class="btn btn-maroon btn-sm px-4">Report an item</a>
                         </div>
@@ -551,11 +585,11 @@ $conn->close();
                                             <?php if ($h_item['image_path']): ?>
                                                 <img src="uploads/<?php echo htmlspecialchars($h_item['image_path']); ?>" class="d-block w-100 history-carousel-img" alt="<?php echo htmlspecialchars($h_item['item_name']); ?>">
                                             <?php else: ?>
-                                                <div class="d-flex align-items-center justify-content-center text-white history-carousel-img" style="background: linear-gradient(135deg, var(--maroon), var(--magenta));"><i class="fas fa-image fa-3x" style="opacity: .6;"></i></div>
+                                                <div class="d-flex align-items-center justify-content-center text-white history-carousel-img" style="background: linear-gradient(135deg, var(--blue), var(--yellow));"><i class="fas fa-image fa-3x" style="opacity: .6;"></i></div>
                                             <?php endif; ?>
                                             <div class="carousel-caption text-start">
                                                 <span class="badge <?php echo $h_badge; ?> mb-1"><?php echo $h_status; ?></span>
-                                                <span class="badge mb-1" style="background: <?php echo $h_item['item_type'] == 'lost' ? 'var(--maroon)' : 'var(--magenta)'; ?>;"><?php echo strtoupper($h_item['item_type']); ?></span>
+                                                <span class="badge mb-1" style="background: <?php echo $h_item['item_type'] == 'lost' ? 'var(--blue)' : 'var(--yellow)'; ?>; <?php echo $h_item['item_type'] == 'found' ? 'color: #713f12;' : ''; ?>"><?php echo strtoupper($h_item['item_type']); ?></span>
                                                 <h6 class="fw-bold mb-0 text-truncate"><?php echo htmlspecialchars($h_item['item_name']); ?></h6>
                                                 <small style="font-size: 0.75rem;"><i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($h_item['category_name']); ?></small>
                                             </div>
@@ -566,7 +600,7 @@ $conn->close();
                                 <button class="carousel-control-next" type="button" data-bs-target="#historyCarousel" data-bs-slide="next" aria-label="Next"><span class="carousel-control-next-icon"></span></button>
                             </div>
                         <?php else: ?>
-                            <div class="bg-white rounded-4 text-center p-4" style="border: 2px dashed #ecc5d8;"><p class="text-muted mb-0">No history yet.</p></div>
+                            <div class="bg-white rounded-4 text-center p-4" style="border: 2px dashed #bfdbfe;"><p class="text-muted mb-0">No history yet.</p></div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -630,7 +664,7 @@ $conn->close();
             var theta = reduce ? 0 : 0.95, omega = 0; // angle (right = positive) and angular velocity
             var dragging = false, moved = 0, hist = [], last = performance.now(), visible = true;
             var parts = [], W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), lastScrollY = window.scrollY;
-            var COLORS = ['#ff2bd6', '#ffd1ef', '#ffffff', '#d6249f'];
+            var COLORS = ['#facc15', '#fde68a', '#ffffff', '#60a5fa'];
 
             function pivot() { var r = anchor.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
             function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
