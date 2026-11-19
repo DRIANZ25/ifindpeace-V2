@@ -12,6 +12,7 @@ $stats = [
     'returned_items' => $conn->query("SELECT COUNT(*) as count FROM items WHERE status = 'returned'")->fetch_assoc()['count'],
     'total_users' => $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'],
     'total_claims' => $conn->query("SELECT COUNT(*) as count FROM claims")->fetch_assoc()['count'],
+    // FIXED: Changed claim_status to status to prevent the fatal error
     'approved_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE status = 'approved'")->fetch_assoc()['count'],
     'completed_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE status = 'completed'")->fetch_assoc()['count'],
 ];
@@ -61,7 +62,7 @@ $conn->close();
                 <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
                     <img src="../assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
                     <div>
-                        <!-- FIXED: Changed text-white to text-dark -->
+                        <!-- FIXED: Changed text-white to text-dark so it's visible -->
                         <small class="text-dark" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">MINDANAO STATE UNIVERSITY</small>
                         <br>
                         <small class="text-dark" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">GENERAL SANTOS</small>
@@ -218,7 +219,7 @@ $conn->close();
                                             <td>
                                                 <?php echo htmlspecialchars($user['full_name']); ?>
                                                 <br>
-                                                <small class="text-muted"><?php echo htmlspecialchars($user['student_id']); ?></small>
+                                                <small class="text-muted"><?php echo htmlspecialchars($user['student_id'] ?? 'N/A'); ?></small>
                                             </td>
                                             <td><?php echo $user['item_count']; ?></td>
                                         </tr>
@@ -261,13 +262,13 @@ $conn->close();
                                                 <td>
                                                     <?php if ($activity['user_id']): ?>
                                                         <?php 
-                                                        $conn = getDBConnection();
-                                                        $stmt = $conn->prepare("SELECT full_name FROM users WHERE user_id = ?");
+                                                        $conn2 = getDBConnection();
+                                                        $stmt = $conn2->prepare("SELECT full_name FROM users WHERE user_id = ?");
                                                         $stmt->bind_param("i", $activity['user_id']);
                                                         $stmt->execute();
                                                         $user = $stmt->get_result()->fetch_assoc();
                                                         $stmt->close();
-                                                        $conn->close();
+                                                        $conn2->close();
                                                         echo htmlspecialchars(is_array($user) ? $user['full_name'] : 'Unknown');
                                                         ?>
                                                     <?php else: ?>
