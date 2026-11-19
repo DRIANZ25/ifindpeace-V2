@@ -1,7 +1,7 @@
 <?php
 require_once 'config/config.php';
 
-// Get recent items (Removed the WHERE clause so returned items still show up)
+// Get recent items (Removed the pending filter so returned items still show up)
 $conn = getDBConnection();
 $recent_items_query = "SELECT i.*, c.category_name, u.full_name, u.student_id 
                       FROM items i 
@@ -251,8 +251,8 @@ $conn->close();
                                             <i class="fas fa-image fa-3x text-muted" style="opacity: 0.3;"></i>
                                         </div>
                                     <?php endif; ?>
-                                    
-                                    <!-- Status Indicator (Pending / Returned) -->
+
+                                    <!-- NEW: Status Indicator (Pending / Returned) -->
                                     <?php
                                     $status_class = 'bg-warning text-dark';
                                     $status_text = 'Pending';
@@ -267,7 +267,7 @@ $conn->close();
                                         </span>
                                     </div>
 
-                                    <!-- Item Type (Lost / Found) -->
+                                    <!-- Original: Item Type Badge (Lost / Found) -->
                                     <div class="card-badge" style="position: absolute; top: 10px; right: 10px; z-index: 2;">
                                         <span class="badge <?php echo $item['item_type'] == 'lost' ? 'badge-lost' : 'badge-found'; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                                             <?php echo strtoupper($item['item_type']); ?>
