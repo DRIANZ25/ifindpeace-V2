@@ -10,14 +10,12 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Removed student_id from here
     $full_name = sanitize($_POST['full_name']);
     $email = sanitize($_POST['email']);
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
     $phone = sanitize($_POST['phone']);
     $course = sanitize($_POST['course']);
-    $year_level = sanitize($_POST['year_level']);
     $pledge = isset($_POST['honesty_pledge']);
     
     // Validation
@@ -45,9 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pledge_signed = 1;
             $pledge_date = date('Y-m-d H:i:s');
             
-            // Removed student_id from the INSERT query
-            $stmt = $conn->prepare("INSERT INTO users (full_name, email, password, phone, course, year_level, honesty_pledge_signed, pledge_signed_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssssis", $full_name, $email, $hashed_password, $phone, $course, $year_level, $pledge_signed, $pledge_date);
+            // Removed year_level from the INSERT query
+            $stmt = $conn->prepare("INSERT INTO users (full_name, email, password, phone, course, honesty_pledge_signed, pledge_signed_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssssis", $full_name, $email, $hashed_password, $phone, $course, $pledge_signed, $pledge_date);
             
             if ($stmt->execute()) {
                 $new_user_id = $conn->insert_id;
@@ -117,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .main h1 { font: 800 1.8rem 'Bricolage Grotesque', sans-serif; letter-spacing: -.8px; color: var(--m8); margin: 0 0 .3rem; }
         .lead { color: var(--muted); font-size: .92rem; margin: 0 0 1.5rem; }
         .field { position: relative; margin-bottom: .85rem; }
-        .field .ico { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #c58aa6; transition: color .2s; pointer-events: none; font-size: .9rem; }
+        .field .ico { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #c58aa6; transition: color .2s; pointer-events: none; font-size: .9rem; z-index: 1; }
         .field input { width: 100%; border: 2px solid #f0d3e0; background: #fff; border-radius: 12px; padding: .78rem 1rem .78rem 2.6rem; font: inherit; font-size: .95rem; color: var(--ink); transition: border-color .2s, box-shadow .2s; }
         .field input::placeholder { color: #b794a5; }
         .field input:focus { outline: 0; border-color: var(--mag); box-shadow: 0 0 0 4px rgba(214,36,159,.15); }
@@ -208,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php else: ?>
                 <div class="progress" aria-live="polite">
                     <div class="bar"><i id="pbar"></i></div>
-                    <small id="ptxt">0 of 5 required steps done</small>
+                    <small id="ptxt">0 of 4 required steps done</small>
                 </div>
 
                 <form method="POST" id="regForm">
@@ -232,17 +230,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="field"><i class="fas fa-phone ico"></i>
                             <input type="text" name="phone" placeholder="Phone (optional)" autocomplete="tel" aria-label="Phone"></div>
                         <div class="field"><i class="fas fa-graduation-cap ico"></i>
-                            <input type="text" name="course" placeholder="Course (optional)" aria-label="Course"></div>
+                            <select name="course" aria-label="Course">
+                                <option value="">Course (optional)</option>
+                                <option value="BSED">BSED</option>
+                                <option value="BEED">BEED</option>
+                                <option value="BPED">BPED</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="field"><i class="fas fa-layer-group ico"></i>
-                        <select name="year_level" aria-label="Year level">
-                            <option value="">Year level (optional)</option>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
-                            <option value="5th Year">5th Year</option>
-                        </select></div>
 
                     <div class="pledge">
                         <label for="honestyPledge">
@@ -289,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (pw2.value) { var same = v === pw2.value; msg = same ? 'Passwords match' : 'Passwords do not match'; cls = same ? 'ok' : 'bad'; }
                 hint.textContent = msg; hint.className = 'hint ' + cls;
 
-                // live checkmarks and progress
+                // live checkmarks and progress (Changed to 4 steps since year level is gone)
                 var name = form.full_name, mail = form.email;
                 var okName = name.value.trim().length > 1, okMail = mail.validity.valid && mail.value !== '';
                 name.parentElement.classList.toggle('ok', okName);
