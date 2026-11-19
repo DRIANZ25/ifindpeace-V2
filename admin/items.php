@@ -20,12 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->begin_transaction();
             // Find the latest approved claim associated with this item.
             $stmt = $conn->prepare("
-                SELECT c.claim_id, c.claimant_id, i.item_name
+                SELECT c.claim_id, c.user_id, i.item_name
                 FROM claims c
                 INNER JOIN items i ON c.item_id = i.item_id
                 WHERE c.item_id = ?
                   AND c.claim_status = 'approved'
-                ORDER BY c.created_at DESC
+                ORDER BY c.claim_date DESC
                 LIMIT 1
             ");
             if (!$stmt) {
@@ -64,9 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
                 sendNotification(
-                    $claim['claimant_id'],
+                    $claim['user_id'],
                     $item_id,
-                    'item_returned',
+                    'admin_message',
                     "The item '{$claim['item_name']}' has been marked as returned. Thank you for coordinating with the Organization Office."
                 );
             }
