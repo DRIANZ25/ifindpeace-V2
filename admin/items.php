@@ -1,51 +1,68 @@
 <?php
 require_once '../config/config.php';
 requireLogin();
-
 if (!isAdmin()) {
     header("Location: ../dashboard.php");
     exit();
 }
-
 date_default_timezone_set('Asia/Manila');
-
 $conn = getDBConnection();
 $message = '';
 $error = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $item_id = intval($_POST['item_id'] ?? 0);
     $new_status = $_POST['status'] ?? '';
     $action = $_POST['action'] ?? '';
-
     if ($item_id <= 0) {
         $error = 'Invalid item.';
     } elseif ($action === 'mark_returned') {
-        $conn->begin_transaction();
         try {
+            $conn->begin_transaction();
+            // Find the latest approved claim associated with this item.
             $stmt = $conn->prepare("
                 SELECT c.claim_id, c.claimant_id, i.item_name
                 FROM claims c
-                JOIN items i ON c.item_id = i.item_id
-                WHERE c.item_id = ? AND c.claim_status = 'approved'
-                ORDER BY c.created_at DESC LIMIT 1
+                INNER JOIN items i ON c.item_id = i.item_id
+                WHERE c.item_id = ?
+                  AND c.claim_status = 'approved'
+                ORDER BY c.created_at DESC
+                LIMIT 1
             ");
-            $stmt->bind_param("i", $item_id);
-            $stmt->execute();
+            if (!$stmt) {
+                throw new RuntimeException('SELECT approved claim failed: ' . $conn->error);
+            }
+            $stmt->bind_param('i', $item_id);
+            if (!$stmt->execute()) {
+                throw new RuntimeException('SELECT approved claim execute failed: ' . $stmt->error);
+            }
             $claim = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-
-            $stmt = $conn->prepare("UPDATE items SET status='returned' WHERE item_id=?");
-            $stmt->bind_param("i", $item_id);
-            $stmt->execute();
+            // Mark the item as returned.
+            $stmt = $conn->prepare("UPDATE items SET status = 'returned' WHERE item_id = ?");
+            if (!$stmt) {
+                throw new RuntimeException('UPDATE item failed: ' . $conn->error);
+            }
+            $stmt->bind_param('i', $item_id);
+            if (!$stmt->execute()) {
+                throw new RuntimeException('UPDATE item execute failed: ' . $stmt->error);
+            }
             $stmt->close();
-
+            // Complete the latest approved claim and notify its claimant.
             if ($claim) {
-                $stmt = $conn->prepare("UPDATE claims SET claim_status='completed', admin_notes=CONCAT(IFNULL(admin_notes,''), ' [Marked returned by admin]') WHERE claim_id=?");
-                $stmt->bind_param("i", $claim['claim_id']);
-                $stmt->execute();
+                $stmt = $conn->prepare("
+                    UPDATE claims
+                    SET claim_status = 'completed',
+                        admin_notes = CONCAT(IFNULL(admin_notes, ''), ' [Marked returned by admin]')
+                    WHERE claim_id = ?
+                ");
+                if (!$stmt) {
+                    throw new RuntimeException('UPDATE approved claim failed: ' . $conn->error);
+                }
+                $stmt->bind_param('i', $claim['claim_id']);
+                if (!$stmt->execute()) {
+                    throw new RuntimeException('UPDATE approved claim execute failed: ' . $stmt->error);
+                }
                 $stmt->close();
-
                 sendNotification(
                     $claim['claimant_id'],
                     $item_id,
@@ -53,23 +70,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "The item '{$claim['item_name']}' has been marked as returned. Thank you for coordinating with the Organization Office."
                 );
             }
-
+            // Reject any other pending or approved claims for this item.
             $stmt = $conn->prepare("
-                UPDATE claims 
-                SET claim_status='rejected', 
-                    admin_notes=CONCAT(IFNULL(admin_notes,''), ' [Auto-rejected: item already returned]')
-                WHERE item_id=? AND claim_status IN ('pending','approved')
+                UPDATE claims
+                SET claim_status = 'rejected',
+                    admin_notes = CONCAT(IFNULL(admin_notes, ''), ' [Auto-rejected: item already returned]')
+                WHERE item_id = ?
+                  AND claim_status IN ('pending', 'approved')
             ");
-            $stmt->bind_param("i", $item_id);
-            $stmt->execute();
+            if (!$stmt) {
+                throw new RuntimeException('UPDATE remaining claims failed: ' . $conn->error);
+            }
+            $stmt->bind_param('i', $item_id);
+            if (!$stmt->execute()) {
+                throw new RuntimeException('UPDATE remaining claims execute failed: ' . $stmt->error);
+            }
             $stmt->close();
-
-            logActivity($_SESSION['user_id'], 'mark_returned', "Marked item #$item_id returned from items page");
+            logActivity(
+                $_SESSION['user_id'],
+                'mark_returned',
+                "Marked item #{$item_id} returned from items page"
+            );
             $conn->commit();
             $message = 'Item marked as returned.';
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $conn->rollback();
-            $error = 'Could not mark item as returned.';
+            error_log('MARK RETURNED ERROR: ' . $e->getMessage());
+            $error = 'Could not mark item as returned. Please check the Railway logs.';
         }
     } elseif ($action === 'delete') {
         $stmt = $conn->prepare("SELECT item_id, item_name, image_path FROM items WHERE item_id = ?");
@@ -77,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-
         if (!$row) {
             $error = 'Item not found.';
         } else {
@@ -90,7 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $proofs[] = $proof['id_proof_path'];
             }
             $pstmt->close();
-
             $conn->begin_transaction();
             try {
                 $d1 = $conn->prepare("DELETE FROM claims WHERE item_id = ?");
@@ -99,26 +124,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('claims');
                 }
                 $d1->close();
-
                 $d2 = $conn->prepare("DELETE FROM items WHERE item_id = ?");
                 $d2->bind_param("i", $item_id);
                 if (!$d2->execute()) {
                     throw new Exception('item');
                 }
                 $d2->close();
-
                 $conn->commit();
-
                 $uploadRoot = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
                 $paths = array_filter(array_merge([$row['image_path'] ?? ''], $proofs));
                 foreach ($paths as $rel) {
-                    $rel = ltrim(str_replace(['\\', '..'], ['/', ''], $rel), '/');
+                    $rel = ltrim(str_replace(['\\\\', '..'], ['/', ''], $rel), '/');
                     $full = $uploadRoot . str_replace('/', DIRECTORY_SEPARATOR, $rel);
                     if ($rel !== '' && is_file($full)) {
                         unlink($full);
                     }
                 }
-
                 logActivity($_SESSION['user_id'], 'delete_item', "Deleted item #$item_id ({$row['item_name']})");
                 $message = 'Item "' . $row['item_name'] . '" was deleted.';
             } catch (Exception $e) {
@@ -127,17 +148,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif (in_array($new_status, ['pending','returned','claimed','donated','expired'])) {
-        $stmt = $conn->prepare("UPDATE items SET status=? WHERE item_id=?");
-        $stmt->bind_param("si", $new_status, $item_id);
-        $stmt->execute();
-        $stmt->close();
-        logActivity($_SESSION['user_id'], 'update_item_status', "Item #$item_id status changed to $new_status");
-        $message = 'Item status updated successfully.';
+        $stmt = $conn->prepare("UPDATE items SET status = ? WHERE item_id = ?");
+        if (!$stmt) {
+            error_log('UPDATE item status prepare failed: ' . $conn->error);
+            $error = 'Could not update item status. Please check the server logs.';
+        } else {
+            $stmt->bind_param('si', $new_status, $item_id);
+            if (!$stmt->execute()) {
+                error_log('UPDATE item status execute failed: ' . $stmt->error);
+                $error = 'Could not update item status.';
+            } else {
+                logActivity($_SESSION['user_id'], 'update_item_status', "Item #$item_id status changed to $new_status");
+                $message = 'Item status updated successfully.';
+            }
+            $stmt->close();
+        }
     } else {
         $error = 'Invalid status.';
     }
 }
-
 $items = $conn->query("
     SELECT i.*, c.category_name, u.full_name AS reporter
     FROM items i
@@ -145,15 +174,13 @@ $items = $conn->query("
     LEFT JOIN users u ON i.user_id = u.user_id
     ORDER BY i.created_at DESC
 ");
-
 // Get Stats
-$stats_query = "SELECT 
+$stats_query = "SELECT
     (SELECT COUNT(*) FROM items) as total,
     (SELECT COUNT(*) FROM items WHERE status = 'pending') as pending,
     (SELECT COUNT(*) FROM items WHERE status = 'claimed') as claimed,
     (SELECT COUNT(*) FROM items WHERE status = 'returned') as returned";
 $stats = $conn->query($stats_query)->fetch_assoc();
-
 $conn->close();
 ?>
 <!DOCTYPE html>
@@ -163,21 +190,17 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Items - iFindPeace Admin</title>
     <link rel="icon" type="image/jpeg" href="../assets/images/msu-logo.jpg">
-    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
     <!-- Core CSS -->
     <link href="../assets/css/style.css" rel="stylesheet">
     <link href="../assets/css/sidebar.css" rel="stylesheet">
     <link href="../assets/css/mobile.css" rel="stylesheet">
-
     <style>
         /* ============================================================
            MANAGE ITEMS SPECIFIC STYLES
@@ -198,17 +221,14 @@ $conn->close();
             --danger: #dc2626;
             --purple: #7c3aed;
         }
-
         body {
             background-color: var(--paper);
             font-family: 'Instrument Sans', system-ui, sans-serif;
         }
-
         /* ── Topbar Override ── */
         .topbar { background: #ffffff !important; border-bottom: 2px solid var(--sky); }
         .topbar-title { color: var(--blue-900); font-weight: 800; }
         .topbar-user { background: var(--sky); color: var(--blue-900); border: 1px solid #dbeafe; }
-
         /* ── Stats Row (Glassmorphism Cards) ── */
         .item-stat-card {
             background: #ffffff;
@@ -257,7 +277,6 @@ $conn->close();
             letter-spacing: 1px;
             margin: 0.2rem 0 0;
         }
-
         /* ── Main Table Container ── */
         .items-panel {
             background: #ffffff;
@@ -266,7 +285,6 @@ $conn->close();
             border: 1px solid #f1f5f9;
             overflow: hidden;
         }
-
         /* ── Toolbar ── */
         .panel-toolbar {
             padding: 1.25rem 1.5rem;
@@ -303,7 +321,6 @@ $conn->close();
             background: #ffffff;
             box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
         }
-
         /* ── FIXED TABLE HEADER ── */
         .items-table { width: 100%; margin: 0; border-collapse: collapse; }
         .items-table th {
@@ -331,7 +348,6 @@ $conn->close();
         .items-table tbody tr:hover {
             background: var(--sky);
         }
-
         /* ── Badges ── */
         .type-badge {
             padding: 0.35rem 0.8rem;
@@ -345,7 +361,6 @@ $conn->close();
         }
         .type-lost { background: var(--blue); color: #fff; box-shadow: 0 4px 10px rgba(30,64,175,0.2); }
         .type-found { background: var(--yellow); color: #713f12; box-shadow: 0 4px 10px rgba(234,179,8,0.2); }
-
         .status-badge {
             padding: 0.35rem 0.8rem;
             border-radius: 50px;
@@ -360,7 +375,6 @@ $conn->close();
         .status-returned { background: #dcfce7; color: #166534; }
         .status-donated { background: #f3e8ff; color: #6b21a8; }
         .status-expired { background: #fee2e2; color: #991b1b; }
-
         /* ── Action Forms ── */
         .action-form-group {
             display: flex;
@@ -407,7 +421,6 @@ $conn->close();
             background: var(--blue);
             color: #fff;
         }
-        
         /* FIXED: Removed the pink glow, made it match the theme */
         .btn-mark-returned {
             background: linear-gradient(135deg, var(--yellow), #b45309);
@@ -428,7 +441,6 @@ $conn->close();
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(234, 179, 8, 0.5);
         }
-
         .btn-delete {
             background: #fff;
             color: #991b1b;
@@ -450,7 +462,6 @@ $conn->close();
             transform: translateY(-2px);
             box-shadow: 0 8px 18px rgba(220, 38, 38, 0.25);
         }
-
         /* Animations */
         @keyframes rowFadeUp {
             to { opacity: 1; transform: translateY(0); }
@@ -458,9 +469,7 @@ $conn->close();
     </style>
 </head>
 <body class="sidebar-layout">
-
     <?php include 'includes/sidebar.php'; ?>
-
     <div class="main-content">
         <!-- Topbar -->
         <div class="topbar">
@@ -477,9 +486,7 @@ $conn->close();
                 </div>
             </div>
         </div>
-
         <div class="page-content p-4">
-            
             <!-- Alerts -->
             <?php if ($message): ?>
                 <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
@@ -493,7 +500,6 @@ $conn->close();
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
-
             <!-- Admin Reminder -->
             <div class="alert alert-warning border-warning shadow-sm d-flex align-items-center gap-3 mb-4" role="alert" style="background: #fffbeb; color: #713f12; border-radius: 16px; padding: 1.2rem;">
                 <div style="background: var(--yellow); color: #713f12; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; font-size: 1.2rem;">
@@ -504,7 +510,6 @@ $conn->close();
                     <span class="small">Found items must be surrendered to the Organization Office. Claimants pick them up there after admin approval. Use <strong>Mark Returned</strong> only after the item is physically handed over.</span>
                 </div>
             </div>
-
             <!-- Stats Row -->
             <div class="row g-4 mb-4">
                 <div class="col-md-6 col-xl-3">
@@ -544,7 +549,6 @@ $conn->close();
                     </div>
                 </div>
             </div>
-
             <!-- Main Panel -->
             <div class="items-panel">
                 <!-- Toolbar -->
@@ -557,7 +561,6 @@ $conn->close();
                         Showing <?php echo $items->num_rows; ?> items
                     </div>
                 </div>
-
                 <!-- Table -->
                 <div class="table-responsive">
                     <table class="items-table" id="itemsTable">
@@ -653,13 +656,10 @@ $conn->close();
                     </table>
                 </div>
             </div>
-
         </div><!-- end page-content -->
     </div><!-- end main-content -->
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/sidebar.js"></script>
-    
     <script>
         // ============================================================
         // 1. COUNT-UP ANIMATION
@@ -667,13 +667,11 @@ $conn->close();
         document.addEventListener("DOMContentLoaded", () => {
             const counters = document.querySelectorAll('.item-stat-info h3');
             const speed = 200;
-
             counters.forEach(counter => {
                 const updateCount = () => {
                     const target = +counter.getAttribute('data-count');
                     const count = +counter.innerText;
                     const inc = target / speed;
-
                     if (count < target) {
                         counter.innerText = Math.ceil(count + inc);
                         setTimeout(updateCount, 15);
@@ -684,21 +682,17 @@ $conn->close();
                 updateCount();
             });
         });
-
         // ============================================================
         // 2. LIVE SEARCH FILTERING
         // ============================================================
         document.getElementById('searchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const tableRows = document.querySelectorAll('#itemsTable tbody tr');
-
             tableRows.forEach(row => {
                 // Skip the "No items found" row if it exists
                 if (row.cells.length === 1) return;
-
                 const itemName = row.querySelector('.fs-6')?.textContent.toLowerCase() || '';
                 const reporter = row.cells[4]?.textContent.toLowerCase() || '';
-                
                 if (itemName.includes(searchValue) || reporter.includes(searchValue)) {
                     row.style.display = '';
                 } else {
