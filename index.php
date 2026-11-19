@@ -1,7 +1,7 @@
 <?php
 require_once 'config/config.php';
 
-// Get recent items (Removed the pending filter so returned items still show up)
+// Get recent items for the main grid
 $conn = getDBConnection();
 $recent_items_query = "SELECT i.*, c.category_name, u.full_name, u.student_id 
                       FROM items i 
@@ -11,11 +11,19 @@ $recent_items_query = "SELECT i.*, c.category_name, u.full_name, u.student_id
                       LIMIT 8";
 $recent_items = $conn->query($recent_items_query);
 
+// Get items for the History Slideshow (Limit 5)
+$history_query = "SELECT i.*, c.category_name 
+                  FROM items i 
+                  JOIN categories c ON i.category_id = c.category_id 
+                  ORDER BY i.created_at DESC 
+                  LIMIT 5";
+$history_items = $conn->query($history_query);
+
 // Get statistics
 $stats_query = "SELECT 
                 (SELECT COUNT(*) FROM items WHERE item_type = 'lost' AND status = 'pending') as lost_count,
                 (SELECT COUNT(*) FROM items WHERE item_type = 'found' AND status = 'pending') as found_count,
-                (SELECT COUNT(*) FROM items WHERE status = 'claimed') as claimed_count,
+                (SELECT COUNT(*) FROM items WHERE status = 'claimed' OR status = 'returned') as claimed_count,
                 (SELECT COUNT(*) FROM users) as user_count";
 $stats = $conn->query($stats_query)->fetch_assoc();
 
@@ -31,6 +39,22 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
+    <style>
+        /* Custom style for the History Slideshow */
+        .history-carousel-img {
+            height: 250px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        .carousel-caption {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 10px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
@@ -206,7 +230,7 @@ $conn->close();
                             <i class="fas fa-check-circle fa-lg" style="color: #c71585; opacity: 0.3;"></i>
                         </div>
                         <div class="stat-number" style="color: #c71585;"><?php echo $stats['claimed_count']; ?></div>
-                        <div class="stat-label">Items Claimed</div>
+                        <div class="stat-label">Items Returned</div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -225,85 +249,154 @@ $conn->close();
         </div>
     </section>
 
-    <!-- Recent Items -->
+    <!-- Recent Items & History Section -->
     <section class="py-4 bg-light">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="fw-bold mb-1" style="color: #1f2937;">Recent Items</h2>
-                    <p class="text-muted small mb-0">Latest lost and found items reported</p>
-                </div>
-                <a href="items.php" class="btn btn-primary">
-                    View All Items <i class="fas fa-arrow-right ms-2"></i>
-                </a>
-            </div>
-
-            <?php if ($recent_items->num_rows > 0): ?>
-                <div class="row g-3">
-                    <?php while ($item = $recent_items->fetch_assoc()): ?>
-                        <div class="col-md-6 col-lg-3">
-                            <div class="card h-100 item-card" style="border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                                <div class="card-image-wrapper" style="position: relative; overflow: hidden; border-radius: 0.75rem 0.75rem 0 0;">
-                                    <?php if ($item['image_path']): ?>
-                                        <img src="uploads/<?php echo htmlspecialchars($item['image_path']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($item['item_name']); ?>" style="height: 160px; object-fit: cover; transition: transform 0.4s ease;">
-                                    <?php else: ?>
-                                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 160px;">
-                                            <i class="fas fa-image fa-3x text-muted" style="opacity: 0.3;"></i>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <!-- NEW: Status Indicator (Pending / Returned) -->
-                                    <?php
-                                    $status_class = 'bg-warning text-dark';
-                                    $status_text = 'Pending';
-                                    if ($item['status'] == 'claimed' || $item['status'] == 'returned') {
-                                        $status_class = 'bg-success';
-                                        $status_text = 'Returned';
-                                    }
-                                    ?>
-                                    <div style="position: absolute; top: 10px; left: 10px; z-index: 2;">
-                                        <span class="badge <?php echo $status_class; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                                            <?php echo $status_text; ?>
-                                        </span>
-                                    </div>
-
-                                    <!-- Original: Item Type Badge (Lost / Found) -->
-                                    <div class="card-badge" style="position: absolute; top: 10px; right: 10px; z-index: 2;">
-                                        <span class="badge <?php echo $item['item_type'] == 'lost' ? 'badge-lost' : 'badge-found'; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                                            <?php echo strtoupper($item['item_type']); ?>
-                                        </span>
-                                    </div>
-                                    <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); pointer-events: none;"></div>
-                                </div>
-                                <div class="card-body" style="padding: 1rem;">
-                                    <h6 class="card-title mb-2" style="font-weight: 700; color: #1f2937; line-height: 1.3;"><?php echo htmlspecialchars($item['item_name']); ?></h6>
-                                    <p class="card-text text-truncate mb-3 small" style="color: #6b7280; font-weight: 500;"><?php echo htmlspecialchars($item['description']); ?></p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="badge bg-light text-dark small" style="padding: 0.3rem 0.75rem; font-weight: 600;">
-                                            <i class="fas fa-tag me-1" style="color: #800000;"></i><?php echo htmlspecialchars($item['category_name']); ?>
-                                        </span>
-                                        <small class="text-muted small" style="font-weight: 500;">
-                                            <i class="fas fa-clock me-1" style="color: #ff69b4;"></i><?php echo date('M d', strtotime($item['created_at'])); ?>
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="card-footer" style="background: #f8f9fa; border-top: 1px solid #e5e7eb; padding: 0.75rem 1rem;">
-                                    <a href="item-details.php?id=<?php echo $item['item_id']; ?>" class="btn btn-primary btn-sm w-100" style="font-weight: 700; padding: 0.5rem;">
-                                        View Details
-                                    </a>
-                                </div>
-                            </div>
+            <div class="row">
+                
+                <!-- LEFT SIDE: Recent Items Grid -->
+                <div class="col-lg-8 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="fw-bold mb-1" style="color: #1f2937;">Recent Items</h2>
+                            <p class="text-muted small mb-0">Latest lost and found items reported</p>
                         </div>
-                    <?php endwhile; ?>
+                        <a href="items.php" class="btn btn-primary btn-sm">
+                            View All <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+
+                    <?php if ($recent_items->num_rows > 0): ?>
+                        <div class="row g-3">
+                            <?php while ($item = $recent_items->fetch_assoc()): ?>
+                                <div class="col-md-6">
+                                    <div class="card h-100 item-card" style="border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                                        <div class="card-image-wrapper" style="position: relative; overflow: hidden; border-radius: 0.75rem 0.75rem 0 0;">
+                                            <?php if ($item['image_path']): ?>
+                                                <img src="uploads/<?php echo htmlspecialchars($item['image_path']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($item['item_name']); ?>" style="height: 160px; object-fit: cover; transition: transform 0.4s ease;">
+                                            <?php else: ?>
+                                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 160px;">
+                                                    <i class="fas fa-image fa-3x text-muted" style="opacity: 0.3;"></i>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <!-- Status Indicator -->
+                                            <?php
+                                            $status_class = 'bg-warning text-dark';
+                                            $status_text = 'Pending';
+                                            if ($item['status'] == 'claimed' || $item['status'] == 'returned') {
+                                                $status_class = 'bg-success';
+                                                $status_text = 'Returned';
+                                            }
+                                            ?>
+                                            <div style="position: absolute; top: 10px; left: 10px; z-index: 2;">
+                                                <span class="badge <?php echo $status_class; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                                                    <?php echo $status_text; ?>
+                                                </span>
+                                            </div>
+
+                                            <!-- Item Type Badge -->
+                                            <div class="card-badge" style="position: absolute; top: 10px; right: 10px; z-index: 2;">
+                                                <span class="badge <?php echo $item['item_type'] == 'lost' ? 'badge-lost' : 'badge-found'; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                                                    <?php echo strtoupper($item['item_type']); ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="card-body" style="padding: 1rem;">
+                                            <h6 class="card-title mb-2" style="font-weight: 700; color: #1f2937; line-height: 1.3;"><?php echo htmlspecialchars($item['item_name']); ?></h6>
+                                            <p class="card-text text-truncate mb-3 small" style="color: #6b7280; font-weight: 500;"><?php echo htmlspecialchars($item['description']); ?></p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge bg-light text-dark small" style="padding: 0.3rem 0.75rem; font-weight: 600;">
+                                                    <i class="fas fa-tag me-1" style="color: #800000;"></i><?php echo htmlspecialchars($item['category_name']); ?>
+                                                </span>
+                                                <small class="text-muted small" style="font-weight: 500;">
+                                                    <i class="fas fa-clock me-1" style="color: #ff69b4;"></i><?php echo date('M d', strtotime($item['created_at'])); ?>
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer" style="background: #f8f9fa; border-top: 1px solid #e5e7eb; padding: 0.75rem 1rem;">
+                                            <a href="item-details.php?id=<?php echo $item['item_id']; ?>" class="btn btn-primary btn-sm w-100" style="font-weight: 700; padding: 0.5rem;">
+                                                View & Claim
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endwhile; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="empty-state bg-white rounded p-5 text-center">
+                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                            <h5>No items yet</h5>
+                            <p class="small text-muted">Be the first to report a lost or found item!</p>
+                            <a href="report.php" class="btn btn-primary btn-sm">Report an Item</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-box-open fa-3x"></i>
-                    <h5>No items yet</h5>
-                    <p class="small">Be the first to report a lost or found item!</p>
-                    <a href="report.php" class="btn btn-primary btn-sm">Report an Item</a>
+
+                <!-- RIGHT SIDE: History Slideshow -->
+                <div class="col-lg-4">
+                    <div class="mb-4">
+                        <h2 class="fw-bold mb-1" style="color: #1f2937;">History</h2>
+                        <p class="text-muted small mb-0">Recently added items in real-time</p>
+                    </div>
+
+                    <?php if ($history_items->num_rows > 0): ?>
+                        <div id="historyCarousel" class="carousel slide shadow rounded" data-bs-ride="carousel" style="overflow: hidden;">
+                            <!-- Indicators -->
+                            <div class="carousel-indicators">
+                                <?php 
+                                $history_items->data_seek(0);
+                                $i = 0;
+                                while($row = $history_items->fetch_assoc()): 
+                                ?>
+                                    <button type="button" data-bs-target="#historyCarousel" data-bs-slide-to="<?php echo $i; ?>" class="<?php echo $i === 0 ? 'active' : ''; ?>"></button>
+                                <?php $i++; endwhile; ?>
+                            </div>
+
+                            <!-- Slides -->
+                            <div class="carousel-inner">
+                                <?php 
+                                $history_items->data_seek(0);
+                                $isFirst = true;
+                                while ($h_item = $history_items->fetch_assoc()): 
+                                    $h_status = ($h_item['status'] == 'claimed' || $h_item['status'] == 'returned') ? 'Returned' : 'Pending';
+                                    $h_badge = ($h_status == 'Returned') ? 'bg-success' : 'bg-warning text-dark';
+                                ?>
+                                    <div class="carousel-item <?php echo $isFirst ? 'active' : ''; ?>">
+                                        <?php if ($h_item['image_path']): ?>
+                                            <img src="uploads/<?php echo htmlspecialchars($h_item['image_path']); ?>" class="d-block w-100 history-carousel-img" alt="...">
+                                        <?php else: ?>
+                                            <div class="d-flex align-items-center justify-content-center bg-secondary text-white history-carousel-img">
+                                                <i class="fas fa-image fa-3x"></i>
+                                            </div>
+                                        <?php endif; ?>
+                                        
+                                        <div class="carousel-caption text-start">
+                                            <span class="badge <?php echo $h_badge; ?> mb-1"><?php echo $h_status; ?></span>
+                                            <span class="badge <?php echo $h_item['item_type'] == 'lost' ? 'bg-danger' : 'bg-primary'; ?> mb-1"><?php echo strtoupper($h_item['item_type']); ?></span>
+                                            <h6 class="fw-bold mb-0 text-truncate"><?php echo htmlspecialchars($h_item['item_name']); ?></h6>
+                                            <small style="font-size: 0.75rem;"><i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($h_item['category_name']); ?></small>
+                                        </div>
+                                    </div>
+                                <?php $isFirst = false; endwhile; ?>
+                            </div>
+
+                            <!-- Controls -->
+                            <button class="carousel-control-prev" type="button" data-bs-target="#historyCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#historyCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <div class="card shadow-sm border-0 text-center p-4">
+                            <p class="text-muted mb-0">No history to display yet.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php endif; ?>
+
+            </div>
         </div>
     </section>
 
