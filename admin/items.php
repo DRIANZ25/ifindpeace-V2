@@ -71,6 +71,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->rollback();
             $error = 'Could not mark item as returned.';
         }
+    } elseif ($action === 'delete') {
+        $stmt = $conn->prepare("SELECT item_id, item_name, image_path FROM items WHERE item_id = ?");
+        $stmt->bind_param("i", $item_id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$row) {
+            $error = 'Item not found.';
+        } else {
+            $proofs = [];
+            $pstmt = $conn->prepare("SELECT id_proof_path FROM claims WHERE item_id = ? AND id_proof_path IS NOT NULL AND id_proof_path <> ''");
+            $pstmt->bind_param("i", $item_id);
+            $pstmt->execute();
+            $pres = $pstmt->get_result();
+            while ($proof = $pres->fetch_assoc()) {
+                $proofs[] = $proof['id_proof_path'];
+            }
+            $pstmt->close();
+
+            $conn->begin_transaction();
+            try {
+                $d1 = $conn->prepare("DELETE FROM claims WHERE item_id = ?");
+                $d1->bind_param("i", $item_id);
+                if (!$d1->execute()) {
+                    throw new Exception('claims');
+                }
+                $d1->close();
+
+                $d2 = $conn->prepare("DELETE FROM items WHERE item_id = ?");
+                $d2->bind_param("i", $item_id);
+                if (!$d2->execute()) {
+                    throw new Exception('item');
+                }
+                $d2->close();
+
+                $conn->commit();
+
+                $uploadRoot = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
+                $paths = array_filter(array_merge([$row['image_path'] ?? ''], $proofs));
+                foreach ($paths as $rel) {
+                    $rel = ltrim(str_replace(['\\', '..'], ['/', ''], $rel), '/');
+                    $full = $uploadRoot . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+                    if ($rel !== '' && is_file($full)) {
+                        unlink($full);
+                    }
+                }
+
+                logActivity($_SESSION['user_id'], 'delete_item', "Deleted item #$item_id ({$row['item_name']})");
+                $message = 'Item "' . $row['item_name'] . '" was deleted.';
+            } catch (Exception $e) {
+                $conn->rollback();
+                $error = 'Could not delete this item. Please try again.';
+            }
+        }
     } elseif (in_array($new_status, ['pending','returned','claimed','donated','expired'])) {
         $stmt = $conn->prepare("UPDATE items SET status=? WHERE item_id=?");
         $stmt->bind_param("si", $new_status, $item_id);
@@ -374,6 +429,28 @@ $conn->close();
             box-shadow: 0 8px 20px rgba(234, 179, 8, 0.5);
         }
 
+        .btn-delete {
+            background: #fff;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.2s var(--ease);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-delete:hover {
+            background: #dc2626;
+            color: #fff;
+            border-color: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(220, 38, 38, 0.25);
+        }
+
         /* Animations */
         @keyframes rowFadeUp {
             to { opacity: 1; transform: translateY(0); }
@@ -525,8 +602,8 @@ $conn->close();
                                             </span>
                                         </td>
                                         <td>
-                                            <?php if ($item['status'] !== 'returned'): ?>
-                                                <div class="action-form-group">
+                                            <div class="action-form-group">
+                                                <?php if ($item['status'] !== 'returned'): ?>
                                                     <form method="POST" class="update-row">
                                                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                                                         <select name="status" class="status-select-custom">
@@ -545,12 +622,19 @@ $conn->close();
                                                             <i class="fas fa-hand-holding-heart"></i>Mark Returned
                                                         </button>
                                                     </form>
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="text-success small fw-bold d-flex align-items-center gap-2">
-                                                    <i class="fas fa-check-circle fs-5"></i> Handed Over
-                                                </span>
-                                            <?php endif; ?>
+                                                <?php else: ?>
+                                                    <span class="text-success small fw-bold d-flex align-items-center gap-2">
+                                                        <i class="fas fa-check-circle fs-5"></i> Handed Over
+                                                    </span>
+                                                <?php endif; ?>
+                                                <form method="POST">
+                                                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <button type="submit" class="btn-delete w-100" onclick="return confirm('Delete this item permanently? Its photo and claims will be removed too.');">
+                                                        <i class="fas fa-trash"></i>Delete
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php $delay += 0.03; endwhile; ?>
