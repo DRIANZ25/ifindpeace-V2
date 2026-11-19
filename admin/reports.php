@@ -9,10 +9,11 @@ $stats = [
     'total_items' => $conn->query("SELECT COUNT(*) as count FROM items")->fetch_assoc()['count'],
     'lost_items' => $conn->query("SELECT COUNT(*) as count FROM items WHERE item_type = 'lost'")->fetch_assoc()['count'],
     'found_items' => $conn->query("SELECT COUNT(*) as count FROM items WHERE item_type = 'found'")->fetch_assoc()['count'],
-    'claimed_items' => $conn->query("SELECT COUNT(*) as count FROM items WHERE status = 'claimed'")->fetch_assoc()['count'],
+    'returned_items' => $conn->query("SELECT COUNT(*) as count FROM items WHERE status = 'returned'")->fetch_assoc()['count'],
     'total_users' => $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'],
     'total_claims' => $conn->query("SELECT COUNT(*) as count FROM claims")->fetch_assoc()['count'],
-    'approved_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE claim_status = 'approved'")->fetch_assoc()['count'],
+    'approved_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE status = 'approved'")->fetch_assoc()['count'],
+    'completed_claims' => $conn->query("SELECT COUNT(*) as count FROM claims WHERE status = 'completed'")->fetch_assoc()['count'],
 ];
 
 // Items by category
@@ -60,9 +61,10 @@ $conn->close();
                 <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
                     <img src="../assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
                     <div>
-                        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">MINDANAO STATE UNIVERSITY</small>
+                        <!-- FIXED: Changed text-white to text-dark -->
+                        <small class="text-dark" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">MINDANAO STATE UNIVERSITY</small>
                         <br>
-                        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">GENERAL SANTOS</small>
+                        <small class="text-dark" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">GENERAL SANTOS</small>
                     </div>
                 </div>
             </div>
@@ -104,29 +106,35 @@ $conn->close();
             </div>
             <div class="col-md-3">
                 <div class="stat-card text-center">
-                    <div class="stat-number text-primary"><?php echo $stats['claimed_items']; ?></div>
-                    <div class="stat-label">Claimed Items</div>
+                    <div class="stat-number text-primary"><?php echo $stats['returned_items']; ?></div>
+                    <div class="stat-label">Returned Items</div>
                 </div>
             </div>
         </div>
 
         <div class="row g-4 mb-5">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stat-card text-center">
                     <div class="stat-number text-info"><?php echo $stats['total_users']; ?></div>
                     <div class="stat-label">Total Users</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stat-card text-center">
                     <div class="stat-number text-warning"><?php echo $stats['total_claims']; ?></div>
                     <div class="stat-label">Total Claims</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stat-card success text-center">
                     <div class="stat-number text-success"><?php echo $stats['approved_claims']; ?></div>
                     <div class="stat-label">Approved Claims</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card success text-center">
+                    <div class="stat-number text-primary"><?php echo $stats['completed_claims']; ?></div>
+                    <div class="stat-label">Completed Claims</div>
                 </div>
             </div>
         </div>

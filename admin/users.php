@@ -63,9 +63,10 @@ $conn->close();
                 <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
                     <img src="../assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
                     <div>
-                        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">MINDANAO STATE UNIVERSITY</small>
+                        <!-- FIXED: Changed text-white to text-dark -->
+                        <small class="text-dark" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">MINDANAO STATE UNIVERSITY</small>
                         <br>
-                        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">GENERAL SANTOS</small>
+                        <small class="text-dark" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">GENERAL SANTOS</small>
                     </div>
                 </div>
             </div>
