@@ -774,3 +774,63 @@ body {
     color: #92400e;
     border-left: 4px solid #f59e0b;
 }
+/* ============================================================
+   BLUE & YELLOW THEME OVERRIDES (Keep this at the bottom)
+   ============================================================ */
+
+/* Force Blue Navbar */
+.navbar {
+    background: linear-gradient(100deg, #0a1628 0%, #0f2444 55%, #1e3a8a 100%) !important;
+    border-bottom: 2px solid #eab308 !important;
+    box-shadow: 0 6px 24px rgba(10, 22, 40, .35) !important;
+}
+.navbar-brand span { color: #facc15 !important; }
+.nav-link { color: rgba(255, 255, 255, 0.85) !important; }
+.nav-link:hover, .nav-link.active { color: #facc15 !important; }
+
+/* Force Blue Primary Buttons */
+.btn-primary {
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%) !important;
+    box-shadow: 0 2px 8px rgba(30,64,175,0.3) !important;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+    box-shadow: 0 4px 12px rgba(30,64,175,0.4) !important;
+}
+
+/* Force Yellow Secondary Buttons */
+.btn-success {
+    background: linear-gradient(135deg, #eab308 0%, #facc15 100%) !important;
+    color: #713f12 !important;
+}
+.btn-success:hover {
+    background: linear-gradient(135deg, #facc15 0%, #fde047 100%) !important;
+}
+
+/* Force Blue/Yellow Badges */
+.badge-lost {
+    background: #1e40af !important;
+    box-shadow: 0 2px 8px rgba(30,64,175,0.3) !important;
+}
+.badge-found {
+    background: #eab308 !important;
+    color: #713f12 !important;
+    box-shadow: 0 2px 8px rgba(234,179,8,0.3) !important;
+}
+
+/* Force Table Headers to Blue */
+.table thead {
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%) !important;
+}
+
+/* Force Form Focus to Yellow */
+.form-control:focus, .form-select:focus {
+    border-color: #eab308 !important;
+    box-shadow: 0 0 0 0.2rem rgba(234,179,8,0.15) !important;
+}
+
+/* Force Notification Badge to Yellow */
+.notification-badge {
+    background: #facc15 !important;
+    color: #713f12 !important;
+}
