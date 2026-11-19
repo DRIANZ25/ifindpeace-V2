@@ -1,0 +1,821 @@
+/* ============================================================
+   iFindPeace — Mobile Responsive Patch
+   Fits any phone screen: 320px up to 767px (above = Bootstrap)
+   Uses !important so it safely overrides inline <style> blocks
+   ============================================================ */
+
+/* ── Global safety ─────────────────────────────────────── */
+html, body {
+  overflow-x: hidden !important;
+  -webkit-text-size-adjust: 100% !important;
+}
+
+/* Prevent iOS auto-zoom on inputs (needs 16px minimum) */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Ensure tap targets are at least 40px tall */
+.btn, .filter-pill, .notif-row, .nav-link {
+  min-height: 40px;
+}
+
+/* ============================================================
+   TABLET DOWN  (≤ 991px)
+   ============================================================ */
+@media (max-width: 991px) {
+  /* Hide the school text block in the navbar — saves horizontal space */
+  .msu-nav-text {
+    display: none !important;
+  }
+
+  /* History panel unsticks */
+  .history-panel {
+    position: static !important;
+    top: auto !important;
+  }
+
+  /* Login/Register shell goes single column */
+  .shell {
+    grid-template-columns: 1fr !important;
+    max-width: 460px !important;
+  }
+
+  .side {
+    padding: 1.5rem 1.4rem !important;
+  }
+
+  .side h2,
+  .side p,
+  .points,
+  .slot {
+    display: none !important;
+  }
+
+  .main {
+    padding: 1.8rem 1.4rem !important;
+    border-left: 0 !important;
+    border-top: 2px dashed #bfdbfe !important;
+  }
+}
+
+/* ============================================================
+   PHONE DOWN  (≤ 767px)
+   ============================================================ */
+@media (max-width: 767px) {
+
+  /* ── Dynamic viewport height for all full-page layouts ── */
+  body {
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+  }
+
+  /* Login/register body — prevent flex overflow */
+  body:has(.shell) {
+    padding: 1rem 0.6rem !important;
+    align-items: flex-start !important;
+  }
+
+  /* ── Typography scaling ── */
+  h1 { font-size: 1.5rem !important; letter-spacing: -0.5px !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.1rem !important; }
+  h4 { font-size: 1rem !important; }
+  h5 { font-size: 0.95rem !important; }
+  h6 { font-size: 0.9rem !important; }
+  body { font-size: 14px; }
+
+  /* ── Navbar ── */
+  .navbar {
+    padding: 0.5rem 0.75rem !important;
+  }
+  .navbar-brand {
+    font-size: 1.15rem !important;
+  }
+  .navbar-nav {
+    padding-top: 0.5rem !important;
+  }
+  .navbar .nav-link {
+    padding: 0.6rem 0.8rem !important;
+    font-size: 0.9rem !important;
+  }
+  .navbar .btn-signup,
+  .navbar .btn-light {
+    width: 100% !important;
+    margin-top: 0.4rem !important;
+  }
+  .notification-badge {
+    font-size: 0.6rem !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    padding: 0 4px !important;
+    top: 2px !important;
+    right: -4px !important;
+  }
+
+  /* ── Sidebar layout topbar ── */
+  .topbar {
+    padding: 0.65rem 0.85rem !important;
+    gap: 0.5rem !important;
+  }
+  .topbar-title {
+    font-size: 0.95rem !important;
+  }
+  .topbar-user {
+    font-size: 0.8rem !important;
+    max-width: 130px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .topbar-bell {
+    font-size: 1rem !important;
+    margin-right: 0.6rem !important;
+  }
+
+  /* ── Page content padding ── */
+  .page-content {
+    padding: 0.75rem !important;
+  }
+
+  /* ── Welcome banner (dashboard) ── */
+  .welcome-banner {
+    padding: 1.3rem 1.1rem !important;
+    border-radius: 16px !important;
+  }
+  .welcome-banner h2 {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+  }
+  .welcome-banner p {
+    font-size: 0.8rem !important;
+  }
+  .welcome-icon {
+    font-size: 5rem !important;
+    right: -12px !important;
+    bottom: -12px !important;
+  }
+
+  /* ── Stat cards (dashboard, admin) ── */
+  .stat-card {
+    padding: 0.9rem 0.5rem !important;
+    border-radius: 14px !important;
+    border-left-width: 4px !important;
+  }
+  .stat-icon {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+  .stat-number {
+    font-size: 1.55rem !important;
+  }
+  .stat-label {
+    font-size: 0.68rem !important;
+  }
+  .stat-card .btn {
+    font-size: 0.65rem !important;
+    padding: 0.22rem 0.65rem !important;
+    margin-top: 0.35rem !important;
+  }
+
+  /* ── Panels (dashboard, admin) ── */
+  .panel {
+    border-radius: 14px !important;
+  }
+  .panel-head {
+    padding: 0.8rem 0.9rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+  }
+  .panel-head h5 {
+    font-size: 0.9rem !important;
+  }
+  .panel-head small {
+    font-size: 0.7rem !important;
+  }
+  .panel-body {
+    padding: 0.9rem !important;
+  }
+
+  /* ── Quick action buttons ── */
+  .quick-btn {
+    padding: 0.7rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    gap: 0.35rem !important;
+    border-radius: 12px !important;
+  }
+  .quick-btn i {
+    font-size: 0.85rem !important;
+  }
+
+  /* ── Charts ── */
+  .chart-box {
+    height: 200px !important;
+  }
+  .chart-small {
+    height: 165px !important;
+  }
+
+  /* ── Tables (Bootstrap) ── */
+  .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .table {
+    min-width: 550px !important;
+    font-size: 0.8rem !important;
+  }
+  .table th,
+  .table td {
+    padding: 0.5rem 0.4rem !important;
+    vertical-align: middle !important;
+  }
+  .table .badge {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.5rem !important;
+  }
+
+  /* ── Filter pills (my-items, admin) ── */
+  .filter-bar {
+    gap: 0.35rem !important;
+  }
+  .filter-pill {
+    padding: 0.45rem 0.8rem !important;
+    font-size: 0.75rem !important;
+    gap: 0.3rem !important;
+  }
+  .filter-pill .count {
+    font-size: 0.65rem !important;
+    padding: 1px 6px !important;
+  }
+
+  /* ── Item cards (my-items, index, item-details claims) ── */
+  .item-card .card-image-wrapper {
+    height: 150px !important;
+  }
+  .item-card .card-body {
+    padding: 0.85rem !important;
+  }
+  .item-card .card-title {
+    font-size: 0.92rem !important;
+  }
+  .item-card .card-text {
+    font-size: 0.78rem !important;
+  }
+  .item-card .card-footer {
+    padding: 0.7rem 0.85rem !important;
+  }
+  .pill-badge {
+    font-size: 0.62rem !important;
+    padding: 0.28rem 0.7rem !important;
+  }
+  .cat-chip,
+  .status-chip {
+    font-size: 0.68rem !important;
+    padding: 0.25rem 0.6rem !important;
+  }
+  .btn-details {
+    font-size: 0.78rem !important;
+    padding: 0.4rem 0.8rem !important;
+  }
+
+  /* ── Hero sections (index, item-details, report, profile, notifications) ── */
+  .hero-lf,
+  .item-hero,
+  .report-hero,
+  .profile-hero,
+  .notif-hero {
+    padding: 2rem 0 4rem !important;
+  }
+  .hero-title,
+  .item-title,
+  .report-hero h1,
+  .profile-hero h1,
+  .notif-hero h1 {
+    font-size: 1.45rem !important;
+    letter-spacing: -0.5px !important;
+    line-height: 1.2 !important;
+  }
+  .hero-sub,
+  .item-cat,
+  .report-hero p,
+  .profile-hero p,
+  .notif-hero p {
+    font-size: 0.85rem !important;
+  }
+
+  /* ── Drop-off notice ── */
+  .dropoff {
+    padding: 0.75rem 0.9rem !important;
+    gap: 0.6rem !important;
+    border-radius: 12px !important;
+  }
+  .dropoff i {
+    font-size: 1.05rem !important;
+  }
+  .dropoff p,
+  .dropoff h6 {
+    font-size: 0.78rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* ── Search pill on hero (index) ── */
+  .search-pill {
+    border-radius: 50px !important;
+  }
+  .search-pill input {
+    padding: 0.6rem 0.9rem !important;
+    font-size: 0.88rem !important;
+  }
+  .search-pill button {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* ── Claim tag (index swinging tag) ── */
+  .tag-wrap {
+    padding-top: 90px !important;
+    margin-top: 1.5rem !important;
+  }
+  .claim-tag {
+    width: 220px !important;
+  }
+  .claim-tag::before {
+    top: -75px !important;
+    height: 85px !important;
+  }
+  .tag-body {
+    padding: 2.6rem 1.2rem 1.2rem !important;
+    border-radius: 16px !important;
+  }
+  .tag-item {
+    font-size: 1.15rem !important;
+  }
+  .tag-label {
+    font-size: 0.62rem !important;
+  }
+  .tag-row {
+    font-size: 0.72rem !important;
+  }
+  .tag-chip {
+    font-size: 0.6rem !important;
+    padding: 0.25rem 0.6rem !important;
+  }
+  .barcode {
+    height: 26px !important;
+  }
+
+  /* ── Stub stat cards on index ── */
+  .stub {
+    padding: 1rem 0.7rem 0.9rem !important;
+    border-radius: 12px !important;
+  }
+  .stub .stat-number {
+    font-size: 1.9rem !important;
+  }
+  .stub .stat-label {
+    font-size: 0.72rem !important;
+  }
+
+  /* ── Form cards (report, profile) ── */
+  .form-card,
+  .profile-card,
+  .glass-card {
+    padding: 1.15rem 0.9rem 1.5rem !important;
+    border-radius: 16px !important;
+    margin-top: -2.2rem !important;
+  }
+
+  /* ── Type pick (report) ── */
+  .type-pick {
+    grid-template-columns: 1fr !important;
+    gap: 0.7rem !important;
+  }
+  .type-pick label {
+    padding: 0.9rem 0.8rem !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    gap: 0.8rem !important;
+  }
+  .type-pick label i {
+    font-size: 1.3rem !important;
+    margin-bottom: 0 !important;
+  }
+  .type-pick label strong {
+    font-size: 0.9rem !important;
+  }
+  .type-pick label small {
+    font-size: 0.72rem !important;
+  }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    padding: 1.1rem !important;
+    border-radius: 12px !important;
+  }
+  .upload-zone i {
+    font-size: 1.6rem !important;
+  }
+  .upload-zone strong {
+    font-size: 0.85rem !important;
+  }
+  .upload-zone small {
+    font-size: 0.7rem !important;
+  }
+
+  /* ── Form inputs ── */
+  .form-label {
+    font-size: 0.8rem !important;
+  }
+  .form-control,
+  .form-select {
+    padding: 0.65rem 0.85rem !important;
+    border-radius: 10px !important;
+  }
+  textarea.form-control {
+    min-height: 100px !important;
+  }
+  /* Icon-padded inputs in login/register */
+  .field input,
+  .field select {
+    padding: 0.7rem 0.85rem 0.7rem 2.4rem !important;
+    border-radius: 10px !important;
+    font-size: 16px !important;
+  }
+  .field .ico {
+    left: 0.8rem !important;
+    font-size: 0.85rem !important;
+  }
+  .field.eyed input {
+    padding-right: 2.6rem !important;
+  }
+  .eye {
+    width: 32px !important;
+    height: 32px !important;
+    right: 0.35rem !important;
+  }
+
+  /* ── Buttons ── */
+  .btn-claim,
+  .btn-submit,
+  .btn-save,
+  .go {
+    padding: 0.8rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+  .btn-back,
+  .btn-cancel {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* ── Avatar (profile) ── */
+  .avatar-big {
+    width: 90px !important;
+    height: 90px !important;
+    font-size: 2rem !important;
+    border-width: 4px !important;
+    margin-top: -3rem !important;
+  }
+
+  /* ── Completion box / pledge card ── */
+  .completion-box {
+    padding: 0.85rem 1rem !important;
+  }
+  .completion-box .pct {
+    font-size: 1.15rem !important;
+  }
+  .pledge-card {
+    padding: 0.9rem 1rem !important;
+    flex-direction: column !important;
+    gap: 0.7rem !important;
+  }
+  .pledge-card .icon {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1rem !important;
+  }
+  .pledge-card strong {
+    font-size: 0.88rem !important;
+  }
+  .pledge-card p {
+    font-size: 0.75rem !important;
+  }
+
+  /* ── Notifications ── */
+  .notif-toolbar {
+    padding: 0.8rem 1rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  .notif-count {
+    font-size: 0.85rem !important;
+  }
+  .btn-mark-read {
+    font-size: 0.72rem !important;
+    padding: 0.35rem 0.75rem !important;
+  }
+  .notif-row {
+    padding: 0.9rem 1rem !important;
+    gap: 0.7rem !important;
+  }
+  .notif-icon {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 0.92rem !important;
+  }
+  .notif-msg {
+    font-size: 0.83rem !important;
+    line-height: 1.35 !important;
+  }
+  .notif-meta {
+    font-size: 0.68rem !important;
+    gap: 0.5rem !important;
+  }
+  .notif-meta .item-tag {
+    font-size: 0.65rem !important;
+    padding: 2px 6px !important;
+  }
+
+  /* ── Claim cards (item-details) ── */
+  .claim-card {
+    padding: 0.9rem !important;
+    border-radius: 12px !important;
+  }
+  .status-badge {
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.6rem !important;
+  }
+
+  /* ── Image wrap (item-details) ── */
+  .image-wrap {
+    min-height: 240px !important;
+    border-radius: 16px !important;
+  }
+  .image-wrap .ph {
+    font-size: 3rem !important;
+    padding: 2rem !important;
+  }
+
+  /* ── Detail rows (item-details) ── */
+  .detail-row {
+    padding: 0.7rem 0 !important;
+  }
+  .detail-row .ico {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.85rem !important;
+    margin-right: 0.7rem !important;
+  }
+  .detail-row .label {
+    font-size: 0.7rem !important;
+  }
+  .detail-row .value {
+    font-size: 0.85rem !important;
+  }
+
+  /* ── Modals ── */
+  .modal-dialog {
+    margin: 0.5rem auto !important;
+    max-width: calc(100% - 1rem) !important;
+  }
+  .modal-body {
+    padding: 1.1rem !important;
+    max-height: 72vh !important;
+    overflow-y: auto !important;
+  }
+  .modal-header {
+    padding: 0.9rem 1.1rem !important;
+  }
+  .modal-header h5 {
+    font-size: 1rem !important;
+  }
+
+  /* ── Login / Register shell ── */
+  .shell {
+    width: calc(100% - 1rem) !important;
+    max-width: 100% !important;
+    border-radius: 16px !important;
+    margin: 0 0.5rem !important;
+  }
+  .side {
+    padding: 1.2rem 1.2rem !important;
+  }
+  .side .brand {
+    font-size: 1.35rem !important;
+  }
+  .side .school {
+    font-size: 0.68rem !important;
+  }
+  .main {
+    padding: 1.3rem 1.1rem 1.5rem !important;
+  }
+  .main h1 {
+    font-size: 1.3rem !important;
+  }
+  .main .lead {
+    font-size: 0.82rem !important;
+  }
+  .row2 {
+    grid-template-columns: 1fr !important;
+    gap: 0.65rem !important;
+  }
+  .pledge {
+    padding: 0.75rem 0.85rem !important;
+    font-size: 0.78rem !important;
+  }
+  .links {
+    font-size: 0.82rem !important;
+  }
+
+  /* ── Footer (index) ── */
+  .footer-lf {
+    padding: 1.8rem 0 !important;
+    margin-top: 2.5rem !important;
+  }
+  .footer-lf img {
+    height: 36px !important;
+    width: 36px !important;
+  }
+  .footer-lf .brand {
+    font-size: 1.05rem !important;
+  }
+  .footer-lf small {
+    font-size: 0.72rem !important;
+  }
+
+  /* ── Timeline (dashboard) ── */
+  .timeline {
+    padding-left: 1.2rem !important;
+  }
+  .timeline-item {
+    padding-bottom: 0.9rem !important;
+  }
+  .timeline-item .small {
+    font-size: 0.72rem !important;
+  }
+
+  /* ── Section titles ── */
+  .section-title {
+    font-size: 1.2rem !important;
+  }
+
+  /* ── btn-group wrapping (my-items old filters) ── */
+  .btn-group {
+    flex-wrap: wrap !important;
+  }
+  .btn-group > .btn {
+    flex: 1 1 auto !important;
+    font-size: 0.75rem !important;
+    padding: 0.4rem 0.7rem !important;
+    border-radius: 50px !important;
+    margin: 0.15rem !important;
+  }
+}
+
+/* ============================================================
+   VERY SMALL PHONES  (≤ 400px  — iPhone SE, Galaxy A0x)
+   ============================================================ */
+@media (max-width: 400px) {
+  h1 { font-size: 1.3rem !important; }
+  h2 { font-size: 1.1rem !important; }
+  .hero-title,
+  .item-title { font-size: 1.25rem !important; }
+
+  /* Navbar */
+  .navbar-brand { font-size: 1.05rem !important; }
+  .navbar-brand i { display: none; }
+
+  /* Topbar */
+  .topbar { padding: 0.55rem 0.7rem !important; }
+  .topbar-title { font-size: 0.85rem !important; }
+  .topbar-user {
+    max-width: 90px !important;
+    font-size: 0.72rem !important;
+  }
+  .sidebar-toggle {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  /* Page padding */
+  .page-content { padding: 0.55rem !important; }
+
+  /* Stat cards */
+  .stat-number { font-size: 1.35rem !important; }
+  .stat-icon {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.8rem !important;
+  }
+  .stat-label { font-size: 0.62rem !important; }
+
+  /* Welcome banner */
+  .welcome-banner {
+    padding: 1rem 0.9rem !important;
+  }
+  .welcome-banner h2 { font-size: 1rem !important; }
+  .welcome-banner p { font-size: 0.72rem !important; }
+  .welcome-icon { display: none !important; }
+
+  /* Filter pills */
+  .filter-pill {
+    padding: 0.4rem 0.65rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* Quick buttons */
+  .quick-btn {
+    font-size: 0.7rem !important;
+    padding: 0.6rem 0.4rem !important;
+  }
+  .quick-btn i { font-size: 0.8rem !important; }
+
+  /* Form cards */
+  .form-card,
+  .profile-card {
+    padding: 1rem 0.75rem 1.2rem !important;
+    margin-top: -1.6rem !important;
+  }
+
+  /* Avatar */
+  .avatar-big {
+    width: 78px !important;
+    height: 78px !important;
+    font-size: 1.7rem !important;
+    margin-top: -2.5rem !important;
+  }
+
+  /* Claim tag */
+  .claim-tag { width: 190px !important; }
+  .tag-item { font-size: 1rem !important; }
+
+  /* Stub stats */
+  .stub .stat-number { font-size: 1.55rem !important; }
+  .stub .stat-label { font-size: 0.65rem !important; }
+
+  /* Item cards */
+  .item-card .card-image-wrapper { height: 130px !important; }
+  .item-card .card-title { font-size: 0.85rem !important; }
+
+  /* Navbar actions stack full width */
+  .navbar-collapse .btn-signup,
+  .navbar-collapse .btn-light {
+    padding: 0.5rem 0.8rem !important;
+    font-size: 0.82rem !important;
+  }
+
+  /* Login/register */
+  body:has(.shell) { padding: 0.6rem 0.35rem !important; }
+  .shell { width: 100% !important; margin: 0 !important; }
+  .main { padding: 1.1rem 0.9rem 1.3rem !important; }
+}
+
+/* ============================================================
+   SAFE AREA (iPhone notch / punch-hole)
+   ============================================================ */
+@supports (padding: max(0px)) {
+  @media (max-width: 767px) {
+    body > nav.navbar,
+    .topbar {
+      padding-left: max(0.85rem, env(safe-area-inset-left)) !important;
+      padding-right: max(0.85rem, env(safe-area-inset-right)) !important;
+    }
+    .page-content,
+    .container {
+      padding-left: max(0.75rem, env(safe-area-inset-left)) !important;
+      padding-right: max(0.75rem, env(safe-area-inset-right)) !important;
+    }
+  }
+}
+
+/* ============================================================
+   LANDSCAPE PHONE  (short height, wide screen)
+   ============================================================ */
+@media (max-width: 900px) and (max-height: 500px) and (orientation: landscape) {
+  .hero-lf,
+  .item-hero,
+  .report-hero,
+  .profile-hero,
+  .notif-hero {
+    padding: 1.5rem 0 2.5rem !important;
+  }
+  .tag-wrap { display: none !important; }
+  .welcome-banner { padding: 1rem !important; }
+  .welcome-banner h2 { font-size: 1rem !important; }
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

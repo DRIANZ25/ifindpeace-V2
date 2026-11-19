@@ -49,6 +49,7 @@ $conn->close();
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
     <link href="../assets/css/sidebar.css" rel="stylesheet">
+    <link href="../assets/css/mobile.css" rel="stylesheet">
 </head>
 <body class="sidebar-layout">
 

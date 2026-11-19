@@ -106,6 +106,7 @@ $profile_pct = round(($filled / count($profile_fields)) * 100);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
     <link href="assets/css/sidebar.css" rel="stylesheet">
+    <link href="../assets/css/mobile.css" rel="stylesheet">
     <style>
         :root {
             --blue-950: #0a1628; --blue-900: #0f2444; --blue: #1e40af; --blue-mid: #2563eb;

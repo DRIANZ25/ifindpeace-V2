@@ -70,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="../assets/css/mobile.css" rel="stylesheet">
     <style>
         :root { --m9: #0a1628; --m8: #0f2444; --maroon: #1e40af; --mag: #eab308; --hot: #facc15; --blush: #eff6ff; --paper: #f8fafc; --ink: #0f172a; --muted: #475569; --ease: cubic-bezier(.2, .8, .2, 1); }
         * { box-sizing: border-box; }
