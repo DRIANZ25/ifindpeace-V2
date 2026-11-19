@@ -175,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <main class="shell wide">
         <aside class="side">
             <a class="brand" href="index.php"><i class="fas fa-search-location me-2"></i>iFind<span>Peace</span></a>
-            <div class="school"><img src="assets/images/msu-logo.jpg" alt="MSU Logo"><div>MINDANAO STATE UNIVERSITY<br>GENERAL SANTOS</div></div>
+            <div class="school"><img src="assets/images/msu-logo.jpg" alt="MSU Logo"><div>College of Education<br>MSU-GenSan</div></div>
             <h2>Join the community.</h2>
             <p>One account lets you report lost items, post what you found, and follow every claim.</p>
             <ul class="points">

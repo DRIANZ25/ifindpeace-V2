@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <main class="shell">
         <aside class="side">
             <a class="brand" href="index.php"><i class="fas fa-search-location me-2"></i>iFind<span>Peace</span></a>
-            <div class="school"><img src="assets/images/msu-logo.jpg" alt="MSU Logo"><div>MINDANAO STATE UNIVERSITY<br>GENERAL SANTOS</div></div>
+            <div class="school"><img src="assets/images/msu-logo.jpg" alt="MSU Logo"><div>College of Education<br>MSU-GenSan</div></div>
             <h2>Welcome back.</h2>
             <p>Sign in to check on your reports and see if something you lost has been turned in.</p>
             <ul class="points">
