@@ -888,3 +888,37 @@ input, select, textarea {
         font-size: 0.75rem !important;
     }
 }
+/* ============================================================
+   FIX FOR UNCLICKABLE BUTTONS ON MOBILE DASHBOARD
+   ============================================================ */
+@media (max-width: 767px) {
+    /* 1. Stop the stat cards from floating so you can actually tap them */
+    .stat-card {
+        animation: none !important;
+        transform: none !important;
+    }
+
+    /* 2. Disable the jump-up hover effect on mobile */
+    .quick-btn:hover,
+    .stat-card:hover,
+    .item-card:hover {
+        transform: none !important;
+    }
+
+    /* 3. Tell the phone to ignore the "shine" layer so it doesn't block taps */
+    .quick-btn::after {
+        pointer-events: none !important;
+        display: none !important; 
+    }
+
+    /* 4. Ensure the top navigation stays on top of everything */
+    .topbar {
+        z-index: 1050 !important;
+    }
+
+    /* 5. Make sure all links act like buttons */
+    a, .btn, .quick-btn {
+        cursor: pointer !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+}
