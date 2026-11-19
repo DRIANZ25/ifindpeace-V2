@@ -55,7 +55,6 @@ $user = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $conn->close();
 
-// Profile completion
 $fields = ['full_name', 'phone', 'course', 'year_level'];
 $filled = 0;
 foreach ($fields as $f) if (!empty($user[$f] ?? '')) $filled++;
@@ -76,7 +75,7 @@ $profile_pct = round(($filled / $total_fields) * 100);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
-    <link href="../assets/css/mobile.css" rel="stylesheet">
+    <link href="assets/css/mobile.css" rel="stylesheet">
     <style>
         :root { --blue-950:#0a1628; --blue-900:#0f2444; --blue:#1e40af; --yellow:#eab308; --yellow-hot:#facc15; --sky:#eff6ff; --paper:#f8fafc; --ink:#0f172a; --muted:#475569; --ease:cubic-bezier(.2,.8,.2,1); }
         body { font-family:'Instrument Sans',system-ui,sans-serif; color:var(--ink); background:var(--paper); }
@@ -86,8 +85,9 @@ $profile_pct = round(($filled / $total_fields) * 100);
         body .navbar .navbar-brand span { color:var(--yellow-hot); }
         body .navbar .nav-link { font-weight:600; }
 
+        /* FIXED: Increased padding bottom to 8rem so the avatar doesn't cover the subtitle */
         .profile-hero {
-            position:relative; overflow:hidden; padding:3.5rem 0 6rem; color:#fff;
+            position:relative; overflow:hidden; padding:3rem 0 8rem; color:#fff;
             background:radial-gradient(700px 400px at 80% 10%,rgba(250,204,21,.3),transparent 60%),
                        linear-gradient(160deg,var(--blue-950),var(--blue-900));
         }
@@ -95,12 +95,13 @@ $profile_pct = round(($filled / $total_fields) * 100);
             background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
             background-size:40px 40px; }
 
+        /* FIXED: Changed margin-top from -5rem to -4rem so it sits nicely below the text */
         .avatar-big {
             width:130px; height:130px; border-radius:50%; overflow:hidden;
             border:5px solid rgba(255,255,255,.85); box-shadow:0 18px 40px rgba(0,0,0,.4);
             background:linear-gradient(135deg,var(--blue),var(--yellow));
             display:flex; align-items:center; justify-content:center;
-            font-size:3rem; font-weight:800; color:#fff; margin:-5rem auto 1rem; position:relative; z-index:5;
+            font-size:3rem; font-weight:800; color:#fff; margin:-4rem auto 1rem; position:relative; z-index:5;
             font-family:'Bricolage Grotesque';
         }
         .avatar-big img { width:100%; height:100%; object-fit:cover; }
@@ -199,7 +200,7 @@ $profile_pct = round(($filled / $total_fields) * 100);
         </div>
     </section>
 
-    <div class="container" style="margin-top:-3rem; position:relative; z-index:5;">
+    <div class="container" style="margin-top:-4rem; position:relative; z-index:5;">
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="avatar-big">
@@ -266,19 +267,19 @@ $profile_pct = round(($filled / $total_fields) * 100);
                                 <input type="text" name="phone" class="form-control" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>" placeholder="09XXXXXXXXX">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Course</label>
+                                <label class="form-label">College / Course</label>
                                 <select name="course" class="form-select">
-    <option value="">Select College</option>
-    <option value="College of Agriculture" <?php echo ($user['course'] ?? '') === 'College of Agriculture' ? 'selected' : ''; ?>>CA – Agriculture</option>
-    <option value="College of Business Administration and Accountancy" <?php echo ($user['course'] ?? '') === 'College of Business Administration and Accountancy' ? 'selected' : ''; ?>>CBAA – Business & Accountancy</option>
-    <option value="College of Education" <?php echo ($user['course'] ?? '') === 'College of Education' ? 'selected' : ''; ?>>CEd – Education</option>
-    <option value="College of Engineering" <?php echo ($user['course'] ?? '') === 'College of Engineering' ? 'selected' : ''; ?>>COE – Engineering</option>
-    <option value="College of Fisheries & Aquatic Sciences" <?php echo ($user['course'] ?? '') === 'College of Fisheries & Aquatic Sciences' ? 'selected' : ''; ?>>CFAS – Fisheries & Aquatic Sciences</option>
-    <option value="College of Health Sciences" <?php echo ($user['course'] ?? '') === 'College of Health Sciences' ? 'selected' : ''; ?>>CHS – Health Sciences</option>
-    <option value="College of Natural Sciences and Mathematics" <?php echo ($user['course'] ?? '') === 'College of Natural Sciences and Mathematics' ? 'selected' : ''; ?>>CNSM – Natural Sciences & Math</option>
-    <option value="College of Social Sciences and Humanities" <?php echo ($user['course'] ?? '') === 'College of Social Sciences and Humanities' ? 'selected' : ''; ?>>CSSH – Social Sciences & Humanities</option>
-    <option value="Institute of Islamic, Arabic, and International Studies" <?php echo ($user['course'] ?? '') === 'Institute of Islamic, Arabic, and International Studies' ? 'selected' : ''; ?>>IIAIS – Islamic & Arabic Studies</option>
-</select>
+                                    <option value="">Select College</option>
+                                    <option value="College of Agriculture" <?php echo ($user['course'] ?? '') === 'College of Agriculture' ? 'selected' : ''; ?>>CA – Agriculture</option>
+                                    <option value="College of Business Administration and Accountancy" <?php echo ($user['course'] ?? '') === 'College of Business Administration and Accountancy' ? 'selected' : ''; ?>>CBAA – Business & Accountancy</option>
+                                    <option value="College of Education" <?php echo ($user['course'] ?? '') === 'College of Education' ? 'selected' : ''; ?>>CEd – Education</option>
+                                    <option value="College of Engineering" <?php echo ($user['course'] ?? '') === 'College of Engineering' ? 'selected' : ''; ?>>COE – Engineering</option>
+                                    <option value="College of Fisheries & Aquatic Sciences" <?php echo ($user['course'] ?? '') === 'College of Fisheries & Aquatic Sciences' ? 'selected' : ''; ?>>CFAS – Fisheries & Aquatic Sciences</option>
+                                    <option value="College of Health Sciences" <?php echo ($user['course'] ?? '') === 'College of Health Sciences' ? 'selected' : ''; ?>>CHS – Health Sciences</option>
+                                    <option value="College of Natural Sciences and Mathematics" <?php echo ($user['course'] ?? '') === 'College of Natural Sciences and Mathematics' ? 'selected' : ''; ?>>CNSM – Natural Sciences & Math</option>
+                                    <option value="College of Social Sciences and Humanities" <?php echo ($user['course'] ?? '') === 'College of Social Sciences and Humanities' ? 'selected' : ''; ?>>CSSH – Social Sciences & Humanities</option>
+                                    <option value="Institute of Islamic, Arabic, and International Studies" <?php echo ($user['course'] ?? '') === 'Institute of Islamic, Arabic, and International Studies' ? 'selected' : ''; ?>>IIAIS – Islamic & Arabic Studies</option>
+                                </select>
                             </div>
                         </div>
 

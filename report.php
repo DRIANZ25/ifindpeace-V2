@@ -97,19 +97,20 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
-    <link href="../assets/css/mobile.css" rel="stylesheet">
+    <link href="assets/css/mobile.css" rel="stylesheet">
     <style>
         :root { --blue-950:#0a1628; --blue-900:#0f2444; --blue:#1e40af; --yellow:#eab308; --yellow-hot:#facc15; --sky:#eff6ff; --paper:#f8fafc; --ink:#0f172a; --muted:#475569; --ease:cubic-bezier(.2,.8,.2,1); }
         body { font-family:'Instrument Sans',system-ui,sans-serif; color:var(--ink); background:var(--paper); }
         h1,h2,h3,h4,h5,h6 { font-family:'Bricolage Grotesque',sans-serif; }
+        
         body .navbar { background:linear-gradient(100deg,var(--blue-950),var(--blue-900),#1e3a8a); border-bottom:2px solid var(--yellow); box-shadow:0 6px 24px rgba(10,22,40,.35); }
         body .navbar .navbar-brand { font-weight:800; font-size:1.5rem; }
         body .navbar .navbar-brand span { color:var(--yellow-hot); }
         body .navbar .nav-link { font-weight:600; }
-        .btn-light-nav { background:var(--yellow-hot); color:#713f12; font-weight:700; border:0; border-radius:50px; }
 
+        /* FIXED: Increased bottom padding so the card doesn't overlap the text */
         .report-hero {
-            position:relative; overflow:hidden; padding:3.5rem 0 5rem; color:#fff;
+            position:relative; overflow:hidden; padding:3.5rem 0 8rem; color:#fff;
             background:radial-gradient(700px 400px at 85% 10%,rgba(250,204,21,.3),transparent 60%),
                        radial-gradient(500px 400px at 0% 100%,rgba(30,64,175,.7),transparent 60%),
                        linear-gradient(160deg,var(--blue-950),var(--blue-900));
@@ -120,9 +121,11 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
         .report-hero::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:26px; background:var(--paper);
             clip-path:polygon(0 100%,0 55%,5% 75%,10% 45%,15% 70%,20% 40%,25% 68%,30% 50%,35% 72%,40% 42%,45% 66%,50% 48%,55% 74%,60% 44%,65% 70%,70% 50%,75% 68%,80% 42%,85% 72%,90% 46%,95% 70%,100% 55%,100% 100%); }
         .report-hero h1 { font-weight:800; letter-spacing:-1px; font-size:clamp(1.9rem,4vw,2.8rem); position:relative; z-index:2; }
-        .report-hero p { color:rgba(255,255,255,.85); position:relative; z-index:2; }
+        
+        /* FIXED: Forced the subtitle text to be light so it's visible */
+        .report-hero p { color:rgba(255,255,255,.85) !important; position:relative; z-index:2; font-size: 1.1rem; }
 
-        .form-card { background:#fff; border-radius:22px; box-shadow:0 18px 44px rgba(10,22,40,.15); padding:2rem 2rem 2.5rem; margin-top:-3rem; position:relative; z-index:5; }
+        .form-card { background:#fff; border-radius:22px; box-shadow:0 18px 44px rgba(10,22,40,.15); padding:2rem 2rem 2.5rem; margin-top:-4rem; position:relative; z-index:5; }
         .progress-form { margin-bottom:1.5rem; }
         .progress-form .bar { height:8px; border-radius:8px; background:#dbeafe; overflow:hidden; }
         .progress-form .bar i { display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,var(--blue),var(--yellow-hot)); transition:width .5s var(--ease); width:0; }
@@ -133,11 +136,7 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
         .dropoff p { margin:0; font-size:.88rem; color:#713f12; }
 
         .type-pick { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; }
-        .type-pick label {
-            position:relative; display:flex; flex-direction:column; align-items:center; padding:1.3rem 1rem;
-            border:2px dashed #dbeafe; border-radius:16px; cursor:pointer; transition:all .3s var(--ease);
-            background:#fff;
-        }
+        .type-pick label { position:relative; display:flex; flex-direction:column; align-items:center; padding:1.3rem 1rem; border:2px dashed #dbeafe; border-radius:16px; cursor:pointer; transition:all .3s var(--ease); background:#fff; }
         .type-pick label i { font-size:1.7rem; margin-bottom:.5rem; color:var(--blue); }
         .type-pick label strong { font-family:'Bricolage Grotesque'; font-size:1rem; color:var(--ink); }
         .type-pick label small { color:var(--muted); font-size:.75rem; }
@@ -160,11 +159,7 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
         .upload-zone small { color:var(--muted); }
         .upload-zone img.preview { max-height:180px; border-radius:12px; margin-bottom:.5rem; display:none; }
 
-        .btn-submit {
-            width:100%; border:0; border-radius:50px; padding:1rem 1.5rem; font-weight:800; font-size:1rem; color:#fff;
-            background:linear-gradient(135deg,var(--blue),var(--yellow));
-            transition:transform .2s var(--ease), box-shadow .2s;
-        }
+        .btn-submit { width:100%; border:0; border-radius:50px; padding:1rem 1.5rem; font-weight:800; font-size:1rem; color:#fff; background:linear-gradient(135deg,var(--blue),var(--yellow)); transition:transform .2s var(--ease), box-shadow .2s; }
         .btn-submit:hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(30,64,175,.4); }
         .btn-submit.loading { pointer-events:none; opacity:.85; }
         .btn-submit.loading::after { content:''; display:inline-block; width:14px; height:14px; margin-left:.6rem; vertical-align:-2px; border:2px solid rgba(255,255,255,.5); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
@@ -192,7 +187,7 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
             <a class="navbar-brand" href="index.php"><i class="fas fa-search-location me-2"></i>iFind<span>Peace</span></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
                     <li class="nav-item"><a class="nav-link" href="index.php">Home</a></li>
                     <?php if (isLoggedIn()): ?>
                         <li class="nav-item"><a class="nav-link" href="<?php echo isAdmin() ? 'admin/dashboard.php' : 'dashboard.php'; ?>">Dashboard</a></li>
@@ -234,7 +229,7 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
         </div>
     </section>
 
-    <div class="container" style="margin-top:-3rem; position:relative; z-index:5;">
+    <div class="container" style="margin-top:-4rem; position:relative; z-index:5;">
         <div class="row justify-content-center">
             <div class="col-lg-9">
                 <div class="form-card fade-rise d3">
@@ -356,7 +351,6 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
     </div>
 
     <script>
-        // Type change labels
         var typeLost = document.getElementById('typeLost'), typeFound = document.getElementById('typeFound');
         if (typeLost) {
             typeLost.addEventListener('change', function() {
@@ -369,7 +363,6 @@ function checkForMatches($item_id, $item_name, $item_type, $category_id, $user_i
             });
         }
 
-        // File preview + desc counter + progress
         var img = document.getElementById('itemImage');
         if (img) {
             img.addEventListener('change', function(e) {
