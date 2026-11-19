@@ -152,9 +152,11 @@ $conn->close();
         /* ---------- Claim tag (hero signature element) ---------- */
         .tag-wrap { display: flex; justify-content: center; padding-top: 1rem; }
         .claim-tag {
-            position: relative; width: 270px; transform-origin: 50% -70px;
-            animation: tagDrop 1s var(--ease) .2s both, tagSwing 6s ease-in-out 1.2s infinite;
+            position: relative; width: 270px; transform-origin: 50% -90px; will-change: transform;
+            cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+            filter: drop-shadow(var(--sx, 0px) 26px 24px rgba(0, 0, 0, .45));
         }
+        .claim-tag.grabbed { cursor: grabbing; }
         .claim-tag::before { /* string */
             content: ''; position: absolute; left: 50%; top: -90px; width: 3px; height: 100px;
             background: linear-gradient(#f4c6dd, #fff); transform: translateX(-50%); border-radius: 2px;
@@ -179,8 +181,38 @@ $conn->close();
         .barcode { height: 34px; margin-top: 1rem; opacity: .75;
             background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 9px, var(--ink) 9px 12px, transparent 12px 14px); }
 
-        @keyframes tagDrop { from { opacity: 0; transform: translateY(-120px) rotate(-8deg); } to { opacity: 1; transform: none; } }
-        @keyframes tagSwing { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+        /* interactive tag: pivot nail, hint, shine, live details */
+        .tag-wrap { position: relative; padding-top: 110px; }
+        .tag-anchor {
+            position: absolute; top: 12px; left: 50%; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #fff, #e8a9cf 45%, #8a1b5c); box-shadow: 0 3px 8px rgba(0, 0, 0, .5);
+        }
+        .tag-hint {
+            position: absolute; bottom: -2.6rem; left: 50%; display: flex; gap: .5rem; align-items: center; white-space: nowrap;
+            font-size: .85rem; color: rgba(255, 255, 255, .85); pointer-events: none; transition: opacity .5s;
+            animation: nudge 2s ease-in-out infinite;
+        }
+        .tag-hint.gone { opacity: 0; }
+        @keyframes nudge { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
+
+        .tag-body::after { /* light sweep that follows the swing angle */
+            content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light;
+            background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .85) 50%, transparent 65%);
+            background-size: 250% 100%; background-position: var(--shine, 50%) 0;
+        }
+        .tag-label::before {
+            content: ''; display: inline-block; width: 7px; height: 7px; margin-right: .5rem; border-radius: 50%;
+            background: var(--magenta); animation: pulse 1.8s infinite;
+        }
+        .tag-chip { animation: chipGlow 2.4s ease-in-out infinite; }
+        @keyframes chipGlow { 50% { box-shadow: 0 0 14px rgba(255, 43, 214, .7); } }
+        .barcode { position: relative; overflow: hidden; }
+        .barcode::after { /* scanner line */
+            content: ''; position: absolute; top: 0; bottom: 0; width: 3px; background: var(--magenta-hot);
+            box-shadow: 0 0 10px var(--magenta-hot); animation: scan 2.6s ease-in-out infinite;
+        }
+        @keyframes scan { 0%, 100% { left: 0; } 50% { left: calc(100% - 3px); } }
+        #sparkles { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 
         /* hero text entrance (one orchestrated moment) */
         .hero-rise { opacity: 0; transform: translateY(18px); animation: rise .8s var(--ease) forwards; }
@@ -337,6 +369,7 @@ $conn->close();
 
     <!-- Hero Section -->
     <section class="hero-lf">
+        <canvas id="sparkles" aria-hidden="true"></canvas>
         <div class="container position-relative" style="z-index: 2;">
             <div class="row align-items-center g-5">
                 <div class="col-lg-7">
@@ -368,7 +401,9 @@ $conn->close();
                 <!-- Hanging claim tag showing the latest reported item -->
                 <div class="col-lg-5">
                     <div class="tag-wrap">
-                        <div class="claim-tag" aria-hidden="true">
+                        <div class="tag-anchor" id="tagAnchor"></div>
+                        <div class="tag-hint" id="tagHint"><i class="fas fa-hand-pointer"></i>Drag the tag to swing it</div>
+                        <div class="claim-tag" id="claimTag" tabindex="0" role="button" aria-label="Claim tag. Drag it, or press the left and right arrow keys, to swing it.">
                             <div class="tag-body">
                                 <div class="tag-label">LATEST REPORT</div>
                                 <div class="tag-item"><?php echo $featured ? htmlspecialchars($featured['item_name']) : 'Nothing reported yet'; ?></div>
@@ -578,6 +613,151 @@ $conn->close();
                 entries.forEach(function (e) { if (e.isIntersecting) { run(e.target); io.unobserve(e.target); } });
             }, { threshold: 0.6 });
             els.forEach(function (el) { io.observe(el); });
+        })();
+    </script>
+    <script>
+        // Swingable claim tag: a real pendulum (gravity + damping) you can grab, throw and nudge
+        (function () {
+            var tag = document.getElementById('claimTag'), anchor = document.getElementById('tagAnchor');
+            var hint = document.getElementById('tagHint'), cvs = document.getElementById('sparkles');
+            var hero = document.querySelector('.hero-lf');
+            if (!tag || !anchor || !cvs) return;
+
+            var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var ctx = cvs.getContext('2d');
+            var GL = 6.1, DAMP = 0.55, MAXA = 2.5;   // gravity/length, damping per second, max angle (rad)
+            var theta = reduce ? 0 : 0.95, omega = 0; // angle (right = positive) and angular velocity
+            var dragging = false, moved = 0, hist = [], last = performance.now(), visible = true;
+            var parts = [], W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), lastScrollY = window.scrollY;
+            var COLORS = ['#ff2bd6', '#ffd1ef', '#ffffff', '#d6249f'];
+
+            function pivot() { var r = anchor.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+            function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+            // ---- pointer drag ----
+            function aim(e) {
+                var p = pivot(), a = Math.atan2(e.clientX - p.x, e.clientY - p.y);
+                theta = clamp(a, -MAXA, MAXA);
+                var now = performance.now();
+                hist.push({ t: now, a: theta });
+                while (hist.length && now - hist[0].t > 100) hist.shift();
+            }
+            tag.addEventListener('pointerdown', function (e) {
+                dragging = true; moved = 0; hist = []; omega = 0;
+                tag.setPointerCapture(e.pointerId); tag.classList.add('grabbed');
+                hint && hint.classList.add('gone');
+                tag._sx = e.clientX; aim(e);
+            });
+            tag.addEventListener('pointermove', function (e) {
+                if (!dragging) return;
+                moved = Math.max(moved, Math.abs(e.clientX - tag._sx));
+                aim(e);
+            });
+            function release(e) {
+                if (!dragging) return;
+                dragging = false; tag.classList.remove('grabbed');
+                var n = hist.length;
+                if (moved < 6) { // a tap flicks it away from the side you hit
+                    var r = tag.getBoundingClientRect();
+                    omega = e.clientX > r.left + r.width / 2 ? -4 : 4;
+                } else if (n > 1) {
+                    var dt = (hist[n - 1].t - hist[0].t) / 1000;
+                    omega = dt > 0 ? clamp((hist[n - 1].a - hist[0].a) / dt, -14, 14) : 0;
+                }
+                if (Math.abs(omega) > 5) burst(18);
+            }
+            tag.addEventListener('pointerup', release);
+            tag.addEventListener('pointercancel', release);
+            tag.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowLeft') omega -= 3.2;
+                else if (e.key === 'ArrowRight') omega += 3.2;
+                else if (e.key === 'Enter' || e.key === ' ') { omega += (Math.random() < .5 ? -1 : 1) * 4; e.preventDefault(); }
+                else return;
+                hint && hint.classList.add('gone');
+            });
+
+            // scrolling shakes the tag a little
+            window.addEventListener('scroll', function () {
+                var dy = window.scrollY - lastScrollY; lastScrollY = window.scrollY;
+                if (!reduce && !dragging) omega += clamp(dy * 0.012, -1.5, 1.5);
+            }, { passive: true });
+
+            // ---- sparkles ----
+            function resize() {
+                W = hero.clientWidth; H = hero.clientHeight;
+                cvs.width = W * dpr; cvs.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            function spawn(x, y, vx, vy, life, size) {
+                parts.push({ x: x, y: y, vx: vx, vy: vy, life: life, max: life, s: size, c: COLORS[(Math.random() * COLORS.length) | 0] });
+            }
+            function tagBottom() {
+                var r = tag.getBoundingClientRect(), h = hero.getBoundingClientRect();
+                return { x: r.left + r.width / 2 - h.left, y: r.bottom - h.top - 20 };
+            }
+            function burst(n) {
+                var b = tagBottom();
+                for (var i = 0; i < n; i++) {
+                    var a = Math.random() * Math.PI * 2, s = 40 + Math.random() * 120;
+                    spawn(b.x + (Math.random() - .5) * 120, b.y, Math.cos(a) * s, Math.sin(a) * s - 40, 0.9 + Math.random() * 0.7, 1.5 + Math.random() * 2.5);
+                }
+            }
+            function seedDust() {
+                for (var i = 0; i < 26; i++) {
+                    spawn(Math.random() * W, Math.random() * H, (Math.random() - .5) * 8, -6 - Math.random() * 10, 999, 1 + Math.random() * 1.8);
+                    parts[parts.length - 1].dust = true;
+                }
+            }
+
+            // ---- main loop ----
+            function frame(now) {
+                requestAnimationFrame(frame);
+                var dt = Math.min((now - last) / 1000, 1 / 30); last = now;
+                if (!visible || document.hidden) return;
+
+                if (!dragging) {
+                    var wind = reduce ? 0 : 0.9 * Math.sin(now / 1100) + 0.45 * Math.sin(now / 470 + 1.3);
+                    for (var k = 0; k < 2; k++) { // two sub-steps for stability
+                        var h = dt / 2;
+                        omega += (-GL * Math.sin(theta) - DAMP * omega + wind) * h;
+                        theta += omega * h;
+                        if (Math.abs(theta) > MAXA) { theta = Math.sign(theta) * MAXA; omega *= -0.4; }
+                    }
+                }
+                tag.style.transform = 'rotate(' + (-theta) + 'rad)';
+                tag.style.setProperty('--sx', (-theta * 45).toFixed(1) + 'px');
+                tag.style.setProperty('--shine', clamp(50 + theta * 90, 0, 100).toFixed(1) + '%');
+
+                if (reduce) return;
+                // fast swings shed sparkles from the tag's bottom edge
+                var speed = Math.abs(omega);
+                if (speed > 2.2 && Math.random() < speed * 0.05) {
+                    var b = tagBottom();
+                    spawn(b.x + (Math.random() - .5) * 90, b.y, -omega * 25 + (Math.random() - .5) * 30, 20 + Math.random() * 30, 0.8 + Math.random() * 0.6, 1.5 + Math.random() * 2);
+                }
+                ctx.clearRect(0, 0, W, H);
+                for (var i = parts.length - 1; i >= 0; i--) {
+                    var p = parts[i];
+                    p.x += p.vx * dt; p.y += p.vy * dt;
+                    if (p.dust) {
+                        if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+                        ctx.globalAlpha = 0.25;
+                    } else {
+                        p.life -= dt; p.vy += 90 * dt;
+                        if (p.life <= 0) { parts.splice(i, 1); continue; }
+                        ctx.globalAlpha = Math.max(0, p.life / p.max);
+                    }
+                    ctx.fillStyle = p.c;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.2832); ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            resize(); if (!reduce) seedDust();
+            window.addEventListener('resize', function () { resize(); });
+            if ('IntersectionObserver' in window) {
+                new IntersectionObserver(function (en) { visible = en[0].isIntersecting; }).observe(hero);
+            }
+            requestAnimationFrame(frame);
         })();
     </script>
 </body>
