@@ -35,7 +35,6 @@ $conn->close();
     <?php include 'includes/sidebar.php'; ?>
 
     <div class="main-content">
-        <!-- Topbar -->
         <div class="topbar">
             <div class="topbar-left">
                 <button class="sidebar-toggle" id="sidebarToggle">
@@ -64,6 +63,12 @@ $conn->close();
                 <h2 class="fw-bold">Admin Dashboard</h2>
                 <p class="text-muted">Overview of platform activity</p>
             </div>
+        </div>
+
+        <!-- Admin Workflow Alert -->
+        <div class="alert alert-primary border-primary mb-4">
+            <h6 class="fw-bold mb-1"><i class="fas fa-bullhorn me-2"></i>Reminder for Admin</h6>
+            <p class="mb-0 small">Please ensure that all found items are surrendered to the <strong>Organization Office</strong>. Direct meetups between users are prohibited. Only mark items as "Claimed" after physically handing them over to the verified owner.</p>
         </div>
 
         <!-- Statistics -->
@@ -163,16 +168,22 @@ $conn->close();
                     </div>
                     <div class="card-body">
                         <div class="row g-2">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <a href="items.php" class="btn w-100 py-2" style="background: linear-gradient(135deg, #800000 0%, #c71585 100%); color: white; font-weight: 700; padding: 0.625rem 1.25rem; box-shadow: 0 2px 8px rgba(128,0,0,0.3);">
+                                    <i class="fas fa-box fa-lg me-1"></i>
+                                    Manage Items
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="claims.php" class="btn w-100 py-2" style="background: linear-gradient(135deg, #c71585 0%, #ff69b4 100%); color: white; font-weight: 700; padding: 0.625rem 1.25rem; box-shadow: 0 2px 8px rgba(199,21,133,0.3);">
+                                    <i class="fas fa-hand-paper fa-lg me-1"></i>
+                                    Manage Claims
+                                </a>
+                            </div>
+                            <div class="col-md-4">
                                 <a href="users.php" class="btn w-100 py-2" style="background: linear-gradient(135deg, #ff00ff 0%, #c71585 100%); color: white; font-weight: 700; padding: 0.625rem 1.25rem; box-shadow: 0 2px 8px rgba(255,0,255,0.3);">
                                     <i class="fas fa-users fa-lg me-1"></i>
                                     Manage Users
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="reports.php" class="btn w-100 py-2" style="background: linear-gradient(135deg, #c71585 0%, #ff69b4 100%); color: white; font-weight: 700; padding: 0.625rem 1.25rem; box-shadow: 0 2px 8px rgba(199,21,133,0.3);">
-                                    <i class="fas fa-chart-bar fa-lg me-1"></i>
-                                    View Reports & Analytics
                                 </a>
                             </div>
                         </div>

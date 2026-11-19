@@ -109,11 +109,16 @@ $conn->close();
         </div>
 
         <div class="page-content">
-        <div class="row mb-4">
+        <div class="row mb-3">
             <div class="col-12">
                 <h2 class="fw-bold">Manage Items</h2>
                 <p class="text-muted">View and manage all reported items</p>
             </div>
+        </div>
+
+        <!-- Drop-off Reminder for Admin -->
+        <div class="alert alert-warning border-warning mb-3">
+            <i class="fas fa-info-circle me-2"></i> <strong>Workflow Reminder:</strong> Change an item's status to <strong>Claimed</strong> only after the claimant has picked it up from the Organization Office.
         </div>
 
         <!-- Filters -->

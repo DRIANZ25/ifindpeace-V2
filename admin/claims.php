@@ -10,13 +10,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_claim'])) {
     $status = sanitize($_POST['status']);
     $admin_notes = sanitize($_POST['admin_notes']);
     
+    // 1. Update the claim status
     $stmt = $conn->prepare("UPDATE claims SET claim_status = ?, admin_notes = ? WHERE claim_id = ?");
     $stmt->bind_param("ssi", $status, $admin_notes, $claim_id);
     $stmt->execute();
     $stmt->close();
     
-    // Get claim details for notification
-    $claim_query = "SELECT cl.*, i.item_name, i.user_id as item_owner_id, cl.user_id as claimant_id 
+    // 2. Get claim details to update the ITEM status as well
+    $claim_query = "SELECT cl.*, i.item_id, i.item_name, i.user_id as item_owner_id, cl.user_id as claimant_id 
                     FROM claims cl 
                     JOIN items i ON cl.item_id = i.item_id 
                     WHERE cl.claim_id = ?";
@@ -26,11 +27,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_claim'])) {
     $claim = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     
-    // Notify claimant
+    // 3. If admin approves or completes the claim, mark the ITEM as claimed
+    if ($status === 'approved' || $status === 'completed') {
+        $item_id = $claim['item_id'];
+        $conn->query("UPDATE items SET status = 'claimed' WHERE item_id = $item_id");
+    }
+    
+    // 4. Notify the claimant
     if ($status === 'approved') {
-        sendNotification($claim['claimant_id'], $claim['item_id'], 'claim_approved', "Your claim for {$claim['item_name']} has been approved!");
+        sendNotification($claim['claimant_id'], $claim['item_id'], 'claim_approved', "Your claim for '{$claim['item_name']}' has been approved! Please proceed to the Organization Office with your ID to pick it up.");
     } elseif ($status === 'rejected') {
-        sendNotification($claim['claimant_id'], $claim['item_id'], 'claim_rejected', "Your claim for {$claim['item_name']} has been rejected.");
+        sendNotification($claim['claimant_id'], $claim['item_id'], 'claim_rejected', "Your claim for '{$claim['item_name']}' has been rejected.");
+    } elseif ($status === 'completed') {
+        sendNotification($claim['claimant_id'], $claim['item_id'], 'item_returned', "Your claim for '{$claim['item_name']}' is completed. Thank you!");
     }
     
     logActivity($_SESSION['user_id'], 'update_claim_status', "Updated claim $claim_id status to $status");
@@ -109,6 +118,12 @@ $conn->close();
                 <h2 class="fw-bold">Manage Claims</h2>
                 <p class="text-muted">Review and manage item claims</p>
             </div>
+        </div>
+
+        <!-- Drop-off Reminder for Admin -->
+        <div class="alert alert-info border-info mb-4">
+            <h6 class="fw-bold mb-1"><i class="fas fa-building me-2"></i>Admin Drop-off Point Reminder</h6>
+            <p class="mb-0 small">Do not approve claims unless the claimant has physically arrived at the <strong>Organization Office</strong> to verify their identity and pick up the item. Once handed over, set the status to <strong>Completed</strong>.</p>
         </div>
 
         <!-- Filters -->
@@ -234,9 +249,9 @@ $conn->close();
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select" required>
                                     <option value="pending" <?php echo $claim['claim_status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="approved" <?php echo $claim['claim_status'] === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                                    <option value="approved" <?php echo $claim['claim_status'] === 'approved' ? 'selected' : ''; ?>>Approved (Waiting for pickup)</option>
                                     <option value="rejected" <?php echo $claim['claim_status'] === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                                    <option value="completed" <?php echo $claim['claim_status'] === 'completed' ? 'selected' : ''; ?>>Completed</option>
+                                    <option value="completed" <?php echo $claim['claim_status'] === 'completed' ? 'selected' : ''; ?>>Completed (Item Handed Over)</option>
                                 </select>
                             </div>
                             
