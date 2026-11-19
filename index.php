@@ -19,6 +19,13 @@ $history_query = "SELECT i.*, c.category_name
                   LIMIT 5";
 $history_items = $conn->query($history_query);
 
+// Latest item, shown on the hero claim tag
+$featured = null;
+if ($history_items && $history_items->num_rows > 0) {
+    $featured = $history_items->fetch_assoc();
+    $history_items->data_seek(0);
+}
+
 // Get statistics
 $stats_query = "SELECT 
                 (SELECT COUNT(*) FROM items WHERE item_type = 'lost' AND status = 'pending') as lost_count,
@@ -36,23 +43,219 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iFindPeace - Peace Comes When Things Are Found</title>
     <link rel="icon" type="image/jpeg" href="assets/images/msu-logo.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
     <style>
-        /* Custom style for the History Slideshow */
-        .history-carousel-img {
-            height: 250px;
-            object-fit: cover;
-            border-radius: 10px;
+        :root {
+            --maroon-950: #2b040d;
+            --maroon-900: #4a0715;
+            --maroon: #800000;
+            --magenta: #d6249f;
+            --magenta-hot: #ff2bd6;
+            --blush: #fff1f7;
+            --paper: #fffaf6;
+            --ink: #2a0a14;
+            --muted: #7a5b66;
+            --ease: cubic-bezier(.2, .8, .2, 1);
         }
-        .carousel-caption {
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 10px;
-            padding: 10px;
-            bottom: 0;
-            left: 0;
-            right: 0;
+
+        body { font-family: 'Instrument Sans', system-ui, sans-serif; color: var(--ink); background: var(--paper); }
+        h1, h2, h3, h4, h5, h6, .navbar-brand, .stat-number { font-family: 'Bricolage Grotesque', 'Instrument Sans', sans-serif; }
+        :focus-visible { outline: 3px solid var(--magenta-hot); outline-offset: 2px; }
+
+        /* ---------- Navbar ---------- */
+        body .navbar {
+            background: linear-gradient(100deg, var(--maroon-950) 0%, var(--maroon-900) 55%, #6b0a2c 100%);
+            border-bottom: 2px solid var(--magenta);
+            box-shadow: 0 6px 24px rgba(43, 4, 13, .35);
+        }
+        body .navbar .navbar-brand { font-weight: 800; font-size: 1.5rem; letter-spacing: -.5px; }
+        body .navbar .navbar-brand span { color: var(--magenta-hot); }
+        body .navbar .nav-link { position: relative; font-weight: 600; opacity: .85; transition: opacity .2s; }
+        body .navbar .nav-link::after {
+            content: ''; position: absolute; left: 50%; bottom: 2px; width: 0; height: 2px;
+            background: var(--magenta-hot); transition: width .3s var(--ease), left .3s var(--ease);
+        }
+        body .navbar .nav-link:hover, body .navbar .nav-link.active { opacity: 1; }
+        body .navbar .nav-link:hover::after, body .navbar .nav-link.active::after { width: 60%; left: 20%; }
+        body .navbar .msu-logo-icon { height: 40px; width: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.85); }
+        .btn-signup {
+            background: linear-gradient(135deg, var(--magenta) 0%, var(--magenta-hot) 100%);
+            color: #fff; border: none; padding: .5rem 1.25rem; font-weight: 700; border-radius: 50px;
+            transition: transform .2s var(--ease), box-shadow .2s;
+        }
+        .btn-signup:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 43, 214, .4); }
+
+        /* ---------- Hero ---------- */
+        .hero-lf {
+            position: relative; overflow: hidden; color: #fff;
+            padding: 5rem 0 6.5rem;
+            background:
+                radial-gradient(900px 500px at 85% 10%, rgba(214, 36, 159, .45), transparent 60%),
+                radial-gradient(700px 500px at 0% 100%, rgba(128, 0, 0, .7), transparent 60%),
+                linear-gradient(160deg, var(--maroon-950), var(--maroon-900));
+        }
+        /* faint "route map" grid, like a campus map */
+        .hero-lf::before {
+            content: ''; position: absolute; inset: 0; opacity: .08; pointer-events: none;
+            background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: linear-gradient(to bottom, #000 30%, transparent 95%);
+            -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 95%);
+        }
+        .hero-lf::after { /* torn paper edge */
+            content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 28px;
+            background: var(--paper);
+            clip-path: polygon(0 100%, 0 55%, 3% 75%, 6% 45%, 9% 70%, 12% 40%, 15% 68%, 18% 50%, 21% 72%, 24% 42%, 27% 66%, 30% 48%, 33% 74%, 36% 44%, 39% 70%, 42% 50%, 45% 76%, 48% 46%, 51% 68%, 54% 42%, 57% 72%, 60% 48%, 63% 70%, 66% 44%, 69% 74%, 72% 50%, 75% 68%, 78% 42%, 81% 72%, 84% 46%, 87% 70%, 90% 52%, 93% 74%, 96% 48%, 100% 66%, 100% 100%);
+        }
+        .hero-lf .hero-title {
+            font-size: clamp(2.4rem, 5.2vw, 4.2rem); font-weight: 800; line-height: 1.02; letter-spacing: -1.5px;
+            text-shadow: 0 4px 24px rgba(0,0,0,.35);
+        }
+        .hero-lf .hero-sub { font-size: 1.1rem; max-width: 34rem; color: rgba(255,255,255,.82); line-height: 1.6; }
+
+        .dropoff {
+            display: flex; gap: .9rem; align-items: flex-start; max-width: 34rem;
+            background: rgba(255, 255, 255, .08); backdrop-filter: blur(6px);
+            border: 1.5px dashed rgba(255, 255, 255, .45); border-radius: 14px; padding: .9rem 1.1rem;
+        }
+        .dropoff i { color: #ffd1ef; font-size: 1.25rem; margin-top: .15rem; }
+        .dropoff p { margin: 0; font-size: .9rem; color: rgba(255,255,255,.9); }
+
+        .search-pill {
+            display: flex; max-width: 34rem; background: #fff; border-radius: 60px; padding: .35rem;
+            box-shadow: 0 14px 40px rgba(0,0,0,.35); transition: box-shadow .3s;
+        }
+        .search-pill:focus-within { box-shadow: 0 14px 40px rgba(255, 43, 214, .45); }
+        .search-pill input { flex: 1; border: 0; outline: 0; background: transparent; padding: .7rem 1.25rem; font-size: 1rem; min-width: 0; color: var(--ink); }
+        .search-pill button {
+            border: 0; border-radius: 50px; padding: .7rem 1.6rem; font-weight: 700; color: #fff;
+            background: linear-gradient(135deg, var(--maroon), var(--magenta)); transition: transform .2s var(--ease);
+        }
+        .search-pill button:hover { transform: scale(1.04); }
+
+        .btn-report {
+            background: #fff; color: var(--maroon); font-weight: 700; border: 0; border-radius: 50px;
+            padding: .8rem 1.7rem; transition: transform .2s var(--ease), box-shadow .2s;
+        }
+        .btn-report:hover { color: var(--maroon-900); transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.3); }
+        .btn-found {
+            color: #fff; font-weight: 700; border: 2px solid rgba(255,255,255,.7); border-radius: 50px;
+            padding: .75rem 1.7rem; transition: background .2s, transform .2s var(--ease);
+        }
+        .btn-found:hover { color: #fff; background: rgba(255, 43, 214, .35); transform: translateY(-3px); }
+
+        /* ---------- Claim tag (hero signature element) ---------- */
+        .tag-wrap { display: flex; justify-content: center; padding-top: 1rem; }
+        .claim-tag {
+            position: relative; width: 270px; transform-origin: 50% -70px;
+            animation: tagDrop 1s var(--ease) .2s both, tagSwing 6s ease-in-out 1.2s infinite;
+        }
+        .claim-tag::before { /* string */
+            content: ''; position: absolute; left: 50%; top: -90px; width: 3px; height: 100px;
+            background: linear-gradient(#f4c6dd, #fff); transform: translateX(-50%); border-radius: 2px;
+        }
+        .tag-body {
+            position: relative; background: var(--paper); color: var(--ink); border-radius: 18px;
+            padding: 3.2rem 1.5rem 1.5rem; box-shadow: 0 30px 60px rgba(0,0,0,.45);
+            clip-path: polygon(14% 0, 86% 0, 100% 9%, 100% 100%, 0 100%, 0 9%);
+        }
+        .tag-body::before { /* punched hole */
+            content: ''; position: absolute; top: 14px; left: 50%; width: 22px; height: 22px; transform: translateX(-50%);
+            border-radius: 50%; background: var(--maroon-900); box-shadow: inset 0 2px 4px rgba(0,0,0,.6);
+        }
+        .tag-label { font-size: .72rem; font-weight: 700; letter-spacing: 2px; color: var(--muted); }
+        .tag-item { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 1.5rem; line-height: 1.1; margin: .3rem 0 1rem; overflow-wrap: anywhere; }
+        .tag-perf { border-top: 2px dashed #e7c3d3; margin: 1rem -1.5rem; position: relative; }
+        .tag-perf::before, .tag-perf::after { content: ''; position: absolute; top: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--maroon-900); }
+        .tag-perf::before { left: -8px; } .tag-perf::after { right: -8px; }
+        .tag-row { display: flex; justify-content: space-between; align-items: center; font-size: .82rem; color: var(--muted); }
+        .tag-chip { font-weight: 800; font-size: .72rem; letter-spacing: 1.5px; padding: .3rem .8rem; border-radius: 50px; color: #fff; }
+        .tag-chip.lost { background: var(--maroon); } .tag-chip.found { background: var(--magenta); }
+        .barcode { height: 34px; margin-top: 1rem; opacity: .75;
+            background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 9px, var(--ink) 9px 12px, transparent 12px 14px); }
+
+        @keyframes tagDrop { from { opacity: 0; transform: translateY(-120px) rotate(-8deg); } to { opacity: 1; transform: none; } }
+        @keyframes tagSwing { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+
+        /* hero text entrance (one orchestrated moment) */
+        .hero-rise { opacity: 0; transform: translateY(18px); animation: rise .8s var(--ease) forwards; }
+        .hero-rise.d1 { animation-delay: .05s; } .hero-rise.d2 { animation-delay: .18s; }
+        .hero-rise.d3 { animation-delay: .3s; } .hero-rise.d4 { animation-delay: .42s; } .hero-rise.d5 { animation-delay: .54s; }
+        @keyframes rise { to { opacity: 1; transform: none; } }
+
+        /* ---------- Stats: ticket stubs ---------- */
+        .stats-row { margin-top: -3.2rem; position: relative; z-index: 5; }
+        .stub {
+            position: relative; background: #fff; border-radius: 16px; padding: 1.3rem 1.2rem 1.1rem; text-align: center; height: 100%;
+            box-shadow: 0 12px 32px rgba(74, 7, 21, .12); border-top: 5px solid var(--c);
+            transition: transform .3s var(--ease), box-shadow .3s;
+        }
+        .stub:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(74, 7, 21, .2); }
+        .stub::before, .stub::after { content: ''; position: absolute; top: 58%; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); }
+        .stub::before { left: -8px; } .stub::after { right: -8px; }
+        .stub .stat-number { font-size: 2.6rem; font-weight: 800; color: var(--c); line-height: 1; }
+        .stub .stat-label { margin-top: .5rem; padding-top: .6rem; border-top: 2px dashed #ecd2de; font-size: .85rem; font-weight: 600; color: var(--muted); }
+
+        /* ---------- Section heads ---------- */
+        .section-title { font-weight: 800; letter-spacing: -.8px; font-size: 1.9rem; color: var(--maroon-900); }
+        .btn-maroon {
+            background: linear-gradient(135deg, var(--maroon), #a3123f); color: #fff; border: 0; border-radius: 50px; font-weight: 700;
+            transition: transform .2s var(--ease), box-shadow .2s;
+        }
+        .btn-maroon:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(128, 0, 0, .35); }
+
+        /* ---------- Item cards: luggage-tag style ---------- */
+        .item-tag {
+            position: relative; background: #fff; border: 0; border-radius: 16px; overflow: hidden; height: 100%;
+            box-shadow: 0 6px 20px rgba(74, 7, 21, .09);
+            transition: transform .3s var(--ease), box-shadow .3s;
+        }
+        .item-tag::before { /* type-colored spine */
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; z-index: 3; background: var(--c);
+        }
+        .item-tag:hover { transform: translateY(-5px); box-shadow: 0 16px 36px rgba(128, 0, 0, .2); }
+        .item-tag .thumb { position: relative; height: 170px; overflow: hidden; background: var(--blush); }
+        .item-tag .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
+        .item-tag:hover .thumb img { transform: scale(1.07); }
+        .item-tag .thumb .ph { height: 100%; display: flex; align-items: center; justify-content: center; color: #d9a5bd; font-size: 2.6rem; }
+        .pill { font-size: .68rem; font-weight: 800; letter-spacing: 1px; padding: .35rem .8rem; border-radius: 50px; color: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.2); }
+        .pill.lost { background: var(--maroon); } .pill.found { background: var(--magenta); }
+        .pill.pending { background: #ffe08a; color: #5a4300; } .pill.returned { background: #1f9d6b; }
+        .item-tag .card-title { font-weight: 800; color: var(--ink); letter-spacing: -.3px; }
+        .meta-chip { background: var(--blush); color: var(--maroon); font-weight: 600; font-size: .75rem; border-radius: 50px; padding: .3rem .75rem; }
+        .item-tag .card-footer { background: transparent; border: 0; border-top: 2px dashed #f0d3e0; margin: 0 1rem; padding: .85rem 0; }
+        .btn-details { border: 2px solid var(--maroon); color: var(--maroon); font-weight: 700; border-radius: 50px; background: transparent; transition: background .2s, color .2s; }
+        .btn-details:hover { background: var(--maroon); color: #fff; }
+
+        /* ---------- History carousel ---------- */
+        .history-panel { position: sticky; top: 90px; }
+        .history-panel .carousel { border-radius: 18px; box-shadow: 0 16px 40px rgba(74, 7, 21, .25); border: 4px solid #fff; }
+        .history-carousel-img { height: 320px; object-fit: cover; }
+        .carousel-caption { background: linear-gradient(transparent, rgba(43, 4, 13, .92)); left: 0; right: 0; bottom: 0; padding: 3rem 1.2rem 2.6rem; }
+        .carousel-indicators [data-bs-target] { width: 8px; height: 8px; border-radius: 50%; border: 0; }
+        .carousel-indicators .active { background: var(--magenta-hot); }
+        .live-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--magenta-hot); margin-right: .45rem; animation: pulse 1.8s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 43, 214, .6); } 70%, 100% { box-shadow: 0 0 0 10px rgba(255, 43, 214, 0); } }
+
+        /* ---------- Footer ---------- */
+        .footer-lf { background: linear-gradient(160deg, var(--maroon-950), var(--maroon-900)); color: rgba(255,255,255,.75); margin-top: 4rem; padding: 2.5rem 0; border-top: 3px solid var(--magenta); }
+        .footer-lf img { height: 44px; width: 44px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.8); }
+        .footer-lf .brand { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; color: #fff; font-size: 1.2rem; }
+        .footer-lf .brand span { color: var(--magenta-hot); }
+
+        @media (max-width: 991px) {
+            .hero-lf { padding: 3.5rem 0 5.5rem; }
+            .history-panel { position: static; }
+            .tag-wrap { margin-top: 3rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+            .hero-rise, .claim-tag { opacity: 1; transform: none; }
         }
     </style>
 </head>
@@ -67,74 +270,54 @@ $conn->close();
                 <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
                     <img src="assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
                     <div>
-                        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">MINDANAO STATE UNIVERSITY</small>
-                        <br>
-                        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">GENERAL SANTOS</small>
+                        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">MINDANAO STATE UNIVERSITY</small><br>
+                        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">GENERAL SANTOS</small>
                     </div>
                 </div>
             </div>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="index.php">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="items.php">Browse Items</a>
-                    </li>
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link active" href="index.php">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="items.php">Browse Items</a></li>
                     <?php if (isLoggedIn()): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="<?php echo isAdmin() ? 'admin/dashboard.php' : 'dashboard.php'; ?>">Dashboard</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="<?php echo isAdmin() ? 'admin/dashboard.php' : 'dashboard.php'; ?>">Dashboard</a></li>
                         <?php if (!isAdmin()): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="report.php">Report Item</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="report.php">Report Item</a></li>
                         <?php endif; ?>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle position-relative" href="#" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle position-relative" href="#" data-bs-toggle="dropdown" aria-label="Notifications">
                                 <i class="fas fa-bell"></i>
                                 <?php 
                                 $unread_count = getUnreadNotificationCount($_SESSION['user_id']);
-                                if ($unread_count > 0): ?>
-                                    <span class="notification-badge"><?php echo $unread_count; ?></span>
-                                <?php endif; ?>
+                                if ($unread_count > 0): ?><span class="notification-badge"><?php echo $unread_count; ?></span><?php endif; ?>
                             </a>
                             <ul class="dropdown-menu notification-dropdown">
                                 <li><h6 class="dropdown-header">Notifications</h6></li>
                                 <?php
                                 $conn = getDBConnection();
-                                $notif_query = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5";
-                                $stmt = $conn->prepare($notif_query);
+                                $stmt = $conn->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
                                 $stmt->bind_param("i", $_SESSION['user_id']);
                                 $stmt->execute();
                                 $notifications = $stmt->get_result();
-                                
                                 if ($notifications->num_rows > 0):
                                     while ($notif = $notifications->fetch_assoc()): ?>
                                         <li class="notification-item <?php echo $notif['is_read'] ? '' : 'unread'; ?>">
-                                            <small class="text-muted"><?php echo date('M d, Y g:i A', strtotime($notif['created_at'])); ?></small>
+                                            <small class="text-muted"><?php echo date('M d, g:i A', strtotime($notif['created_at'])); ?></small>
                                             <p class="mb-0 small"><?php echo htmlspecialchars($notif['message']); ?></p>
                                         </li>
-                                    <?php endwhile;
-                                else: ?>
-                                    <li class="notification-item">
-                                        <p class="mb-0 small text-muted">No notifications</p>
-                                    </li>
-                                <?php endif;
-                                $stmt->close();
-                                $conn->close();
-                                ?>
+                                    <?php endwhile; else: ?>
+                                    <li class="notification-item"><p class="mb-0 small text-muted">No notifications</p></li>
+                                <?php endif; $stmt->close(); $conn->close(); ?>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="notifications.php">View All</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle me-1"></i>
-                                <?php echo htmlspecialchars($_SESSION['full_name']); ?>
+                                <i class="fas fa-user-circle me-1"></i><?php echo htmlspecialchars($_SESSION['full_name']); ?>
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user me-2"></i>Profile</a></li>
@@ -144,16 +327,8 @@ $conn->close();
                             </ul>
                         </li>
                     <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="login.php">
-                                <i class="fas fa-sign-in-alt me-1"></i>Log In
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn ms-2" href="register.php" style="background: linear-gradient(135deg, #ff69b4 0%, #ff00ff 100%); color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; box-shadow: 0 2px 8px rgba(255,105,180,0.4);">
-                                <i class="fas fa-user-plus me-1"></i>Sign Up
-                            </a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt me-1"></i>Log In</a></li>
+                        <li class="nav-item"><a class="btn btn-signup ms-lg-2" href="register.php">Sign Up</a></li>
                     <?php endif; ?>
                 </ul>
             </div>
@@ -161,88 +336,88 @@ $conn->close();
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="container hero-content">
-            <div class="row justify-content-center text-center">
-                <div class="col-lg-8">
-                    <h1 class="hero-title" style="text-shadow: 0 4px 12px rgba(0,0,0,0.3);">Lost Something? Found Something?</h1>
-                    <p class="hero-subtitle" style="text-shadow: 0 2px 8px rgba(0,0,0,0.2);">iFindPeace helps MSU students recover lost belongings and report found items. Join our community of honesty and accountability.</p>
-                    
-                    <!-- Search Box -->
-                    <form action="items.php" method="GET" class="search-box">
-                        <div class="input-group" style="box-shadow: 0 8px 30px rgba(0,0,0,0.2); border-radius: 50px; overflow: hidden;">
-                            <input type="text" name="search" class="form-control" placeholder="Search for lost or found items..." required style="border: none; padding: 0.875rem 1.5rem; font-size: 1rem; font-weight: 500;">
-                            <button type="submit" class="btn" style="background: linear-gradient(135deg, #FFA500 0%, #ff6600 100%); border: none; padding: 0.875rem 2rem; font-weight: 700; box-shadow: none;">
-                                <i class="fas fa-search me-2"></i>Search
-                            </button>
+    <section class="hero-lf">
+        <div class="container position-relative" style="z-index: 2;">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <h1 class="hero-title hero-rise d1">Lost something? Found something? Let's get it home.</h1>
+                    <p class="hero-sub my-4 hero-rise d2">iFindPeace helps MSU students recover lost belongings and report found items. Join our community of honesty and accountability.</p>
+
+                    <!-- Drop-off Point Notice -->
+                    <div class="dropoff mb-4 hero-rise d3">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-white">Designated drop-off point</h6>
+                            <p>If you found an item, drop it off at the <strong>Organization Office</strong>. All claimed items must be picked up there. Do not arrange direct meetups.</p>
                         </div>
+                    </div>
+
+                    <form action="items.php" method="GET" class="search-pill hero-rise d4" role="search">
+                        <input type="text" name="search" placeholder="Search for lost or found items..." required aria-label="Search items">
+                        <button type="submit"><i class="fas fa-search me-2"></i>Search</button>
                     </form>
-                    
+
                     <?php if (!isAdmin()): ?>
-                    <div class="mt-4">
-                        <a href="report.php" class="btn btn-lg me-2" style="background: rgba(255,255,255,0.95); color: #800000; border: none; padding: 0.75rem 1.75rem; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
-                            <i class="fas fa-plus-circle me-2"></i>Report Lost Item
-                        </a>
-                        <a href="report.php?type=found" class="btn btn-outline-light btn-lg" style="border: 2px solid rgba(255,255,255,0.8); color: white; padding: 0.75rem 1.75rem; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
-                            <i class="fas fa-hand-holding-heart me-2"></i>Report Found Item
-                        </a>
+                    <div class="mt-4 d-flex flex-wrap gap-2 hero-rise d5">
+                        <a href="report.php" class="btn btn-report"><i class="fas fa-plus-circle me-2"></i>Report Lost Item</a>
+                        <a href="report.php?type=found" class="btn btn-found"><i class="fas fa-hand-holding-heart me-2"></i>Report Found Item</a>
                     </div>
                     <?php endif; ?>
+                </div>
+
+                <!-- Hanging claim tag showing the latest reported item -->
+                <div class="col-lg-5">
+                    <div class="tag-wrap">
+                        <div class="claim-tag" aria-hidden="true">
+                            <div class="tag-body">
+                                <div class="tag-label">LATEST REPORT</div>
+                                <div class="tag-item"><?php echo $featured ? htmlspecialchars($featured['item_name']) : 'Nothing reported yet'; ?></div>
+                                <div class="tag-row">
+                                    <span><i class="fas fa-tag me-1"></i><?php echo $featured ? htmlspecialchars($featured['category_name']) : 'Be the first'; ?></span>
+                                    <?php if ($featured): ?>
+                                        <span class="tag-chip <?php echo $featured['item_type'] == 'lost' ? 'lost' : 'found'; ?>"><?php echo strtoupper($featured['item_type']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="tag-perf"></div>
+                                <div class="tag-row">
+                                    <span>Tag no. <?php echo $featured ? str_pad($featured['item_id'], 5, '0', STR_PAD_LEFT) : '00000'; ?></span>
+                                    <span><?php echo $featured ? date('M d', strtotime($featured['created_at'])) : ''; ?></span>
+                                </div>
+                                <div class="barcode"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Statistics -->
-    <section class="py-4">
+    <section class="stats-row">
         <div class="container">
             <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="stat-card text-center" style="position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -20px; right: -20px; font-size: 5rem; opacity: 0.05; color: #800000;">
-                            <i class="fas fa-search"></i>
-                        </div>
-                        <div class="mb-1">
-                            <i class="fas fa-search fa-lg" style="color: #800000; opacity: 0.3;"></i>
-                        </div>
-                        <div class="stat-number" style="color: #800000;"><?php echo $stats['lost_count']; ?></div>
-                        <div class="stat-label">Lost Items</div>
+                <div class="col-6 col-md-3">
+                    <div class="stub" style="--c: var(--maroon);">
+                        <div class="stat-number" data-count="<?php echo (int)$stats['lost_count']; ?>">0</div>
+                        <div class="stat-label">Lost items</div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="stat-card success text-center" style="position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -20px; right: -20px; font-size: 5rem; opacity: 0.05; color: #ff00ff;">
-                            <i class="fas fa-hand-holding-heart"></i>
-                        </div>
-                        <div class="mb-1">
-                            <i class="fas fa-hand-holding-heart fa-lg" style="color: #ff00ff; opacity: 0.3;"></i>
-                        </div>
-                        <div class="stat-number" style="color: #ff00ff;"><?php echo $stats['found_count']; ?></div>
-                        <div class="stat-label">Found Items</div>
+                <div class="col-6 col-md-3">
+                    <div class="stub" style="--c: var(--magenta);">
+                        <div class="stat-number" data-count="<?php echo (int)$stats['found_count']; ?>">0</div>
+                        <div class="stat-label">Found items</div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="stat-card text-center" style="position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -20px; right: -20px; font-size: 5rem; opacity: 0.05; color: #c71585;">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="mb-1">
-                            <i class="fas fa-check-circle fa-lg" style="color: #c71585; opacity: 0.3;"></i>
-                        </div>
-                        <div class="stat-number" style="color: #c71585;"><?php echo $stats['claimed_count']; ?></div>
-                        <div class="stat-label">Items Returned</div>
+                <div class="col-6 col-md-3">
+                    <div class="stub" style="--c: #1f9d6b;">
+                        <div class="stat-number" data-count="<?php echo (int)$stats['claimed_count']; ?>">0</div>
+                        <div class="stat-label">Items returned</div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="stat-card warning text-center" style="position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -20px; right: -20px; font-size: 5rem; opacity: 0.05; color: #ff69b4;">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="mb-1">
-                            <i class="fas fa-users fa-lg" style="color: #ff69b4; opacity: 0.3;"></i>
-                        </div>
-                        <div class="stat-number" style="color: #ff69b4;"><?php echo $stats['user_count']; ?></div>
-                        <div class="stat-label">Registered Users</div>
+                <div class="col-6 col-md-3">
+                    <div class="stub" style="--c: var(--maroon-900);">
+                        <div class="stat-number" data-count="<?php echo (int)$stats['user_count']; ?>">0</div>
+                        <div class="stat-label">Registered users</div>
                     </div>
                 </div>
             </div>
@@ -250,251 +425,160 @@ $conn->close();
     </section>
 
     <!-- Recent Items & History Section -->
-    <section class="py-4 bg-light">
+    <section class="py-5">
         <div class="container">
-            <div class="row">
-                
+            <div class="row g-4">
                 <!-- LEFT SIDE: Recent Items Grid -->
-                <div class="col-lg-8 mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="col-lg-8">
+                    <div class="d-flex justify-content-between align-items-end mb-4">
                         <div>
-                            <h2 class="fw-bold mb-1" style="color: #1f2937;">Recent Items</h2>
+                            <h2 class="section-title mb-1">Recent items</h2>
                             <p class="text-muted small mb-0">Latest lost and found items reported</p>
                         </div>
-                        <a href="items.php" class="btn btn-primary btn-sm">
-                            View All <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
+                        <a href="items.php" class="btn btn-maroon btn-sm px-3 py-2">View all <i class="fas fa-arrow-right ms-1"></i></a>
                     </div>
 
                     <?php if ($recent_items->num_rows > 0): ?>
-                        <div class="row g-3">
-                            <?php while ($item = $recent_items->fetch_assoc()): ?>
+                        <div class="row g-4">
+                            <?php while ($item = $recent_items->fetch_assoc()): 
+                                $is_returned = ($item['status'] == 'claimed' || $item['status'] == 'returned');
+                                $type_color = $item['item_type'] == 'lost' ? 'var(--maroon)' : 'var(--magenta)';
+                            ?>
                                 <div class="col-md-6">
-                                    <div class="card h-100 item-card" style="border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                                        <div class="card-image-wrapper" style="position: relative; overflow: hidden; border-radius: 0.75rem 0.75rem 0 0;">
+                                    <div class="card item-tag" style="--c: <?php echo $type_color; ?>;">
+                                        <div class="thumb">
                                             <?php if ($item['image_path']): ?>
-                                                <img src="uploads/<?php echo htmlspecialchars($item['image_path']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($item['item_name']); ?>" style="height: 160px; object-fit: cover; transition: transform 0.4s ease;">
+                                                <img src="uploads/<?php echo htmlspecialchars($item['image_path']); ?>" alt="<?php echo htmlspecialchars($item['item_name']); ?>">
                                             <?php else: ?>
-                                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 160px;">
-                                                    <i class="fas fa-image fa-3x text-muted" style="opacity: 0.3;"></i>
-                                                </div>
+                                                <div class="ph"><i class="fas fa-image"></i></div>
                                             <?php endif; ?>
 
                                             <!-- Status Indicator -->
-                                            <?php
-                                            $status_class = 'bg-warning text-dark';
-                                            $status_text = 'Pending';
-                                            if ($item['status'] == 'claimed' || $item['status'] == 'returned') {
-                                                $status_class = 'bg-success';
-                                                $status_text = 'Returned';
-                                            }
-                                            ?>
-                                            <div style="position: absolute; top: 10px; left: 10px; z-index: 2;">
-                                                <span class="badge <?php echo $status_class; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                                                    <?php echo $status_text; ?>
+                                            <div style="position: absolute; top: 12px; left: 16px; z-index: 2;">
+                                                <span class="pill <?php echo $is_returned ? 'returned' : 'pending'; ?>">
+                                                    <?php echo $is_returned ? 'Returned' : 'Pending Admin Approval'; ?>
                                                 </span>
                                             </div>
 
                                             <!-- Item Type Badge -->
-                                            <div class="card-badge" style="position: absolute; top: 10px; right: 10px; z-index: 2;">
-                                                <span class="badge <?php echo $item['item_type'] == 'lost' ? 'badge-lost' : 'badge-found'; ?>" style="font-size: 0.7rem; padding: 0.35rem 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                                            <div style="position: absolute; top: 12px; right: 12px; z-index: 2;">
+                                                <span class="pill <?php echo $item['item_type'] == 'lost' ? 'lost' : 'found'; ?>">
                                                     <?php echo strtoupper($item['item_type']); ?>
                                                 </span>
                                             </div>
                                         </div>
-                                        <div class="card-body" style="padding: 1rem;">
-                                            <h6 class="card-title mb-2" style="font-weight: 700; color: #1f2937; line-height: 1.3;"><?php echo htmlspecialchars($item['item_name']); ?></h6>
-                                            <p class="card-text text-truncate mb-3 small" style="color: #6b7280; font-weight: 500;"><?php echo htmlspecialchars($item['description']); ?></p>
+                                        <div class="card-body" style="padding: 1.1rem 1.2rem .8rem 1.4rem;">
+                                            <h6 class="card-title mb-2"><?php echo htmlspecialchars($item['item_name']); ?></h6>
+                                            <p class="card-text text-truncate mb-3 small text-muted"><?php echo htmlspecialchars($item['description']); ?></p>
                                             <div class="d-flex justify-content-between align-items-center">
-                                                <span class="badge bg-light text-dark small" style="padding: 0.3rem 0.75rem; font-weight: 600;">
-                                                    <i class="fas fa-tag me-1" style="color: #800000;"></i><?php echo htmlspecialchars($item['category_name']); ?>
-                                                </span>
-                                                <small class="text-muted small" style="font-weight: 500;">
-                                                    <i class="fas fa-clock me-1" style="color: #ff69b4;"></i><?php echo date('M d', strtotime($item['created_at'])); ?>
-                                                </small>
+                                                <span class="meta-chip"><i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($item['category_name']); ?></span>
+                                                <small class="text-muted"><i class="far fa-clock me-1" style="color: var(--magenta);"></i><?php echo date('M d', strtotime($item['created_at'])); ?></small>
                                             </div>
                                         </div>
-                                        <div class="card-footer" style="background: #f8f9fa; border-top: 1px solid #e5e7eb; padding: 0.75rem 1rem;">
-                                            <a href="item-details.php?id=<?php echo $item['item_id']; ?>" class="btn btn-primary btn-sm w-100" style="font-weight: 700; padding: 0.5rem;">
-                                                View & Claim
-                                            </a>
+                                        <div class="card-footer">
+                                            <a href="item-details.php?id=<?php echo $item['item_id']; ?>" class="btn btn-details btn-sm w-100">View Details</a>
                                         </div>
                                     </div>
                                 </div>
                             <?php endwhile; ?>
                         </div>
                     <?php else: ?>
-                        <div class="empty-state bg-white rounded p-5 text-center">
-                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                            <h5>No items yet</h5>
-                            <p class="small text-muted">Be the first to report a lost or found item!</p>
-                            <a href="report.php" class="btn btn-primary btn-sm">Report an Item</a>
+                        <div class="bg-white rounded-4 p-5 text-center shadow-sm" style="border: 2px dashed #ecc5d8;">
+                            <i class="fas fa-box-open fa-3x mb-3" style="color: var(--magenta); opacity: .5;"></i>
+                            <h5>No items reported yet</h5>
+                            <a href="report.php" class="btn btn-maroon btn-sm px-4">Report an item</a>
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <!-- RIGHT SIDE: History Slideshow -->
                 <div class="col-lg-4">
-                    <div class="mb-4">
-                        <h2 class="fw-bold mb-1" style="color: #1f2937;">History</h2>
-                        <p class="text-muted small mb-0">Recently added items in real-time</p>
-                    </div>
+                    <div class="history-panel">
+                        <div class="mb-4">
+                            <h2 class="section-title mb-1">History</h2>
+                            <p class="text-muted small mb-0"><span class="live-dot"></span>Recently added items in real time</p>
+                        </div>
 
-                    <?php if ($history_items->num_rows > 0): ?>
-                        <div id="historyCarousel" class="carousel slide shadow rounded" data-bs-ride="carousel" style="overflow: hidden;">
-                            <!-- Indicators -->
-                            <div class="carousel-indicators">
-                                <?php 
-                                $history_items->data_seek(0);
-                                $i = 0;
-                                while($row = $history_items->fetch_assoc()): 
-                                ?>
-                                    <button type="button" data-bs-target="#historyCarousel" data-bs-slide-to="<?php echo $i; ?>" class="<?php echo $i === 0 ? 'active' : ''; ?>"></button>
-                                <?php $i++; endwhile; ?>
-                            </div>
-
-                            <!-- Slides -->
-                            <div class="carousel-inner">
-                                <?php 
-                                $history_items->data_seek(0);
-                                $isFirst = true;
-                                while ($h_item = $history_items->fetch_assoc()): 
-                                    $h_status = ($h_item['status'] == 'claimed' || $h_item['status'] == 'returned') ? 'Returned' : 'Pending';
-                                    $h_badge = ($h_status == 'Returned') ? 'bg-success' : 'bg-warning text-dark';
-                                ?>
-                                    <div class="carousel-item <?php echo $isFirst ? 'active' : ''; ?>">
-                                        <?php if ($h_item['image_path']): ?>
-                                            <img src="uploads/<?php echo htmlspecialchars($h_item['image_path']); ?>" class="d-block w-100 history-carousel-img" alt="...">
-                                        <?php else: ?>
-                                            <div class="d-flex align-items-center justify-content-center bg-secondary text-white history-carousel-img">
-                                                <i class="fas fa-image fa-3x"></i>
+                        <?php if ($history_items->num_rows > 0): ?>
+                            <div id="historyCarousel" class="carousel slide" data-bs-ride="carousel" style="overflow: hidden;">
+                                <div class="carousel-indicators">
+                                    <?php $history_items->data_seek(0); $i = 0; while($row = $history_items->fetch_assoc()): ?>
+                                        <button type="button" data-bs-target="#historyCarousel" data-bs-slide-to="<?php echo $i; ?>" class="<?php echo $i === 0 ? 'active' : ''; ?>" aria-label="Slide <?php echo $i + 1; ?>"></button>
+                                    <?php $i++; endwhile; ?>
+                                </div>
+                                <div class="carousel-inner">
+                                    <?php $history_items->data_seek(0); $isFirst = true; while ($h_item = $history_items->fetch_assoc()): 
+                                        $h_status = ($h_item['status'] == 'claimed' || $h_item['status'] == 'returned') ? 'Returned' : 'Pending';
+                                        $h_badge = ($h_status == 'Returned') ? 'bg-success' : 'bg-warning text-dark';
+                                    ?>
+                                        <div class="carousel-item <?php echo $isFirst ? 'active' : ''; ?>">
+                                            <?php if ($h_item['image_path']): ?>
+                                                <img src="uploads/<?php echo htmlspecialchars($h_item['image_path']); ?>" class="d-block w-100 history-carousel-img" alt="<?php echo htmlspecialchars($h_item['item_name']); ?>">
+                                            <?php else: ?>
+                                                <div class="d-flex align-items-center justify-content-center text-white history-carousel-img" style="background: linear-gradient(135deg, var(--maroon), var(--magenta));"><i class="fas fa-image fa-3x" style="opacity: .6;"></i></div>
+                                            <?php endif; ?>
+                                            <div class="carousel-caption text-start">
+                                                <span class="badge <?php echo $h_badge; ?> mb-1"><?php echo $h_status; ?></span>
+                                                <span class="badge mb-1" style="background: <?php echo $h_item['item_type'] == 'lost' ? 'var(--maroon)' : 'var(--magenta)'; ?>;"><?php echo strtoupper($h_item['item_type']); ?></span>
+                                                <h6 class="fw-bold mb-0 text-truncate"><?php echo htmlspecialchars($h_item['item_name']); ?></h6>
+                                                <small style="font-size: 0.75rem;"><i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($h_item['category_name']); ?></small>
                                             </div>
-                                        <?php endif; ?>
-                                        
-                                        <div class="carousel-caption text-start">
-                                            <span class="badge <?php echo $h_badge; ?> mb-1"><?php echo $h_status; ?></span>
-                                            <span class="badge <?php echo $h_item['item_type'] == 'lost' ? 'bg-danger' : 'bg-primary'; ?> mb-1"><?php echo strtoupper($h_item['item_type']); ?></span>
-                                            <h6 class="fw-bold mb-0 text-truncate"><?php echo htmlspecialchars($h_item['item_name']); ?></h6>
-                                            <small style="font-size: 0.75rem;"><i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($h_item['category_name']); ?></small>
                                         </div>
-                                    </div>
-                                <?php $isFirst = false; endwhile; ?>
+                                    <?php $isFirst = false; endwhile; ?>
+                                </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#historyCarousel" data-bs-slide="prev" aria-label="Previous"><span class="carousel-control-prev-icon"></span></button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#historyCarousel" data-bs-slide="next" aria-label="Next"><span class="carousel-control-next-icon"></span></button>
                             </div>
-
-                            <!-- Controls -->
-                            <button class="carousel-control-prev" type="button" data-bs-target="#historyCarousel" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#historyCarousel" data-bs-slide="next">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            </button>
-                        </div>
-                    <?php else: ?>
-                        <div class="card shadow-sm border-0 text-center p-4">
-                            <p class="text-muted mb-0">No history to display yet.</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works -->
-    <section class="py-4">
-        <div class="container">
-            <div class="text-center mb-4">
-                <h2 class="fw-bold mb-2" style="color: #1f2937;">How It Works</h2>
-                <p class="text-muted small">Simple steps to find what you've lost</p>
-            </div>
-            <div class="row g-3">
-                <div class="col-md-4 text-center">
-                    <div class="card h-100 border-0" style="background: linear-gradient(135deg, rgba(128,0,0,0.05) 0%, rgba(255,0,255,0.05) 100%); border-radius: 1rem; padding: 1.5rem; transition: all 0.3s ease;">
-                        <div class="mb-3" style="position: relative; display: inline-block;">
-                            <div style="position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, rgba(128,0,0,0.2) 0%, transparent 70%); border-radius: 50%;"></div>
-                            <i class="fas fa-clipboard-list fa-3x" style="color: #800000; position: relative; z-index: 1;"></i>
-                        </div>
-                        <h5 style="font-weight: 700; color: #1f2937;">1. Report Item</h5>
-                        <p class="text-muted small" style="font-weight: 500;">Report your lost item or a found item with details and photos.</p>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="card h-100 border-0" style="background: linear-gradient(135deg, rgba(255,0,255,0.05) 0%, rgba(199,21,133,0.05) 100%); border-radius: 1rem; padding: 1.5rem; transition: all 0.3s ease;">
-                        <div class="mb-3" style="position: relative; display: inline-block;">
-                            <div style="position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, rgba(255,0,255,0.2) 0%, transparent 70%); border-radius: 50%;"></div>
-                            <i class="fas fa-search fa-3x" style="color: #ff00ff; position: relative; z-index: 1;"></i>
-                        </div>
-                        <h5 style="font-weight: 700; color: #1f2937;">2. Search & Match</h5>
-                        <p class="text-muted small" style="font-weight: 500;">Our system automatically matches lost and found items.</p>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="card h-100 border-0" style="background: linear-gradient(135deg, rgba(199,21,133,0.05) 0%, rgba(255,105,180,0.05) 100%); border-radius: 1rem; padding: 1.5rem; transition: all 0.3s ease;">
-                        <div class="mb-3" style="position: relative; display: inline-block;">
-                            <div style="position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, rgba(199,21,133,0.2) 0%, transparent 70%); border-radius: 50%;"></div>
-                            <i class="fas fa-handshake fa-3x" style="color: #c71585; position: relative; z-index: 1;"></i>
-                        </div>
-                        <h5 style="font-weight: 700; color: #1f2937;">3. Claim & Recover</h5>
-                        <p class="text-muted small" style="font-weight: 500;">Verify ownership and claim your item securely.</p>
+                        <?php else: ?>
+                            <div class="bg-white rounded-4 text-center p-4" style="border: 2px dashed #ecc5d8;"><p class="text-muted mb-0">No history yet.</p></div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-4" style="background: var(--gradient-primary); color: white;">
-        <div class="container text-center">
-            <h2 class="fw-bold mb-2">Join Our Community</h2>
-            <p class="mb-3">Help create a culture of honesty and accountability at MSU-Gensan.</p>
-            <?php if (!isLoggedIn()): ?>
-                <a href="register.php" class="btn btn-light btn-lg">Register Now <i class="fas fa-arrow-right ms-2"></i></a>
-            <?php else: ?>
-                <a href="report.php" class="btn btn-light btn-lg">Report an Item <i class="fas fa-arrow-right ms-2"></i></a>
-            <?php endif; ?>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer-lf">
         <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold mb-3">iFindPeace</h5>
-                    <p class="text-white-50">A centralized lost and found platform for Mindanao State University - General Santos students.</p>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold mb-3">Quick Links</h5>
-                    <div class="footer-links d-flex flex-column">
-                        <a href="index.php">Home</a>
-                        <a href="items.php">Browse Items</a>
-                        <a href="about.php">About Us</a>
-                        <a href="contact.php">Contact</a>
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="assets/images/msu-logo.jpg" alt="MSU Logo">
+                    <div>
+                        <div class="brand">iFind<span>Peace</span></div>
+                        <small>Mindanao State University - General Santos</small>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold mb-3">Contact Info</h5>
-                    <p class="text-white-50 mb-2">
-                        <i class="fas fa-map-marker-alt me-2"></i>MSU-Gensan, General Santos City
-                    </p>
-                    <p class="text-white-50 mb-2">
-                        <i class="fas fa-envelope me-2"></i>support@ifindpeace.com
-                    </p>
-                    <div class="mt-3">
-                        <a href="#" class="text-white me-3"><i class="fab fa-facebook fa-lg"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-twitter fa-lg"></i></a>
-                        <a href="#" class="text-white"><i class="fab fa-instagram fa-lg"></i></a>
-                    </div>
-                </div>
-            </div>
-            <hr class="my-4">
-            <div class="text-center text-white-50">
-                <p class="mb-0">&copy; <?php echo date('Y'); ?> iFindPeace. All rights reserved.</p>
+                <small>&copy; <?php echo date('Y'); ?> iFindPeace. All rights reserved.</small>
             </div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/main.js"></script>
+    <script>
+        // Count-up for the stat stubs (runs once when they scroll into view)
+        (function () {
+            var els = document.querySelectorAll('[data-count]');
+            var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            function run(el) {
+                var target = parseInt(el.dataset.count, 10) || 0;
+                if (reduce || target === 0) { el.textContent = target; return; }
+                var start = null, dur = 1100;
+                function step(t) {
+                    if (start === null) start = t;
+                    var p = Math.min((t - start) / dur, 1);
+                    el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+                    if (p < 1) requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+            }
+            if (!('IntersectionObserver' in window)) { els.forEach(run); return; }
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) { if (e.isIntersecting) { run(e.target); io.unobserve(e.target); } });
+            }, { threshold: 0.6 });
+            els.forEach(function (el) { io.observe(el); });
+        })();
+    </script>
 </body>
 </html>
