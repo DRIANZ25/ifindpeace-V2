@@ -302,8 +302,9 @@ $conn->close();
                 <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
                     <img src="assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
                     <div>
-                        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">MINDANAO STATE UNIVERSITY</small><br>
-                        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">GENERAL SANTOS</small>
+                        <small class="text-dark" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">College of Education</small>
+<br>
+<small class="text-dark" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">MSU-GenSan</small>
                     </div>
                 </div>
             </div>
@@ -581,7 +582,7 @@ $conn->close();
                     <img src="assets/images/msu-logo.jpg" alt="MSU Logo">
                     <div>
                         <div class="brand">iFind<span>Peace</span></div>
-                        <small>Mindanao State University - General Santos</small>
+                        <small>College of Education - MSU-GenSan</small>
                     </div>
                 </div>
                 <small>&copy; <?php echo date('Y'); ?> iFindPeace. All rights reserved.</small>
