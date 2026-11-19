@@ -228,11 +228,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="text" name="phone" placeholder="Phone (optional)" autocomplete="tel" aria-label="Phone"></div>
                         <div class="field"><i class="fas fa-graduation-cap ico"></i>
                             <select name="course" aria-label="Course">
-                                <option value="">Course (optional)</option>
-                                <option value="BSED">BSED</option>
-                                <option value="BEED">BEED</option>
-                                <option value="BPED">BPED</option>
-                            </select>
+    <option value="">Course/College (optional)</option>
+    <option value="College of Agriculture">CA – Agriculture</option>
+    <option value="College of Business Administration and Accountancy">CBAA – Business & Accountancy</option>
+    <option value="College of Education">CEd – Education</option>
+    <option value="College of Engineering">COE – Engineering</option>
+    <option value="College of Fisheries & Aquatic Sciences">CFAS – Fisheries & Aquatic Sciences</option>
+    <option value="College of Health Sciences">CHS – Health Sciences</option>
+    <option value="College of Natural Sciences and Mathematics">CNSM – Natural Sciences & Math</option>
+    <option value="College of Social Sciences and Humanities">CSSH – Social Sciences & Humanities</option>
+    <option value="Institute of Islamic, Arabic, and International Studies">IIAIS – Islamic & Arabic Studies</option>
+</select>
                         </div>
                     </div>
 

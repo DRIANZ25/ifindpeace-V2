@@ -268,11 +268,17 @@ $profile_pct = round(($filled / $total_fields) * 100);
                             <div class="col-md-6">
                                 <label class="form-label">Course</label>
                                 <select name="course" class="form-select">
-                                    <option value="">Select Course</option>
-                                    <option value="BSED" <?php echo ($user['course'] ?? '') === 'BSED' ? 'selected' : ''; ?>>BSED</option>
-                                    <option value="BEED" <?php echo ($user['course'] ?? '') === 'BEED' ? 'selected' : ''; ?>>BEED</option>
-                                    <option value="BPED" <?php echo ($user['course'] ?? '') === 'BPED' ? 'selected' : ''; ?>>BPED</option>
-                                </select>
+    <option value="">Select College</option>
+    <option value="College of Agriculture" <?php echo ($user['course'] ?? '') === 'College of Agriculture' ? 'selected' : ''; ?>>CA – Agriculture</option>
+    <option value="College of Business Administration and Accountancy" <?php echo ($user['course'] ?? '') === 'College of Business Administration and Accountancy' ? 'selected' : ''; ?>>CBAA – Business & Accountancy</option>
+    <option value="College of Education" <?php echo ($user['course'] ?? '') === 'College of Education' ? 'selected' : ''; ?>>CEd – Education</option>
+    <option value="College of Engineering" <?php echo ($user['course'] ?? '') === 'College of Engineering' ? 'selected' : ''; ?>>COE – Engineering</option>
+    <option value="College of Fisheries & Aquatic Sciences" <?php echo ($user['course'] ?? '') === 'College of Fisheries & Aquatic Sciences' ? 'selected' : ''; ?>>CFAS – Fisheries & Aquatic Sciences</option>
+    <option value="College of Health Sciences" <?php echo ($user['course'] ?? '') === 'College of Health Sciences' ? 'selected' : ''; ?>>CHS – Health Sciences</option>
+    <option value="College of Natural Sciences and Mathematics" <?php echo ($user['course'] ?? '') === 'College of Natural Sciences and Mathematics' ? 'selected' : ''; ?>>CNSM – Natural Sciences & Math</option>
+    <option value="College of Social Sciences and Humanities" <?php echo ($user['course'] ?? '') === 'College of Social Sciences and Humanities' ? 'selected' : ''; ?>>CSSH – Social Sciences & Humanities</option>
+    <option value="Institute of Islamic, Arabic, and International Studies" <?php echo ($user['course'] ?? '') === 'Institute of Islamic, Arabic, and International Studies' ? 'selected' : ''; ?>>IIAIS – Islamic & Arabic Studies</option>
+</select>
                             </div>
                         </div>
 
