@@ -46,8 +46,8 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
-// Get filter parameters
-$status_filter = isset($_GET['status']) && in_array($_GET['status'], ['pending', 'claimed', 'donated', 'expired'], true) ? $_GET['status'] : '';
+// Get filter parameters (Changed donated to archived)
+$status_filter = isset($_GET['status']) && in_array($_GET['status'], ['pending', 'claimed', 'archived', 'expired'], true) ? $_GET['status'] : '';
 $type_filter = isset($_GET['type']) && in_array($_GET['type'], ['lost', 'found'], true) ? $_GET['type'] : '';
 
 // Build query
@@ -91,12 +91,13 @@ $conn->close();
                 <button class="sidebar-toggle" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
                 </button>
+                <!-- Fixed Visibility: Changed text-white to text-dark -->
                 <div class="msu-nav-text ms-3 d-none d-lg-flex align-items-center">
                     <img src="../assets/images/msu-logo.jpg" alt="MSU Logo" class="msu-logo-icon me-2">
                     <div>
-                        <small class="text-white" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">MINDANAO STATE UNIVERSITY</small>
+                        <small class="text-dark" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 700;">MINDANAO STATE UNIVERSITY</small>
                         <br>
-                        <small class="text-white" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">GENERAL SANTOS</small>
+                        <small class="text-secondary" style="font-size: 0.65rem; letter-spacing: 1px; font-weight: 600;">GENERAL SANTOS</small>
                     </div>
                 </div>
             </div>
@@ -129,7 +130,7 @@ $conn->close();
                         <option value="">All Status</option>
                         <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
                         <option value="claimed" <?php echo $status_filter === 'claimed' ? 'selected' : ''; ?>>Claimed</option>
-                        <option value="donated" <?php echo $status_filter === 'donated' ? 'selected' : ''; ?>>Donated</option>
+                        <option value="archived" <?php echo $status_filter === 'archived' ? 'selected' : ''; ?>>Archived</option>
                         <option value="expired" <?php echo $status_filter === 'expired' ? 'selected' : ''; ?>>Expired</option>
                     </select>
                 </div>
@@ -199,7 +200,7 @@ $conn->close();
                                         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                                             <option value="pending" <?php echo $item['status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
                                             <option value="claimed" <?php echo $item['status'] === 'claimed' ? 'selected' : ''; ?>>Claimed</option>
-                                            <option value="donated" <?php echo $item['status'] === 'donated' ? 'selected' : ''; ?>>Donated</option>
+                                            <option value="archived" <?php echo $item['status'] === 'archived' ? 'selected' : ''; ?>>Archived</option>
                                             <option value="expired" <?php echo $item['status'] === 'expired' ? 'selected' : ''; ?>>Expired</option>
                                         </select>
                                     </form>
