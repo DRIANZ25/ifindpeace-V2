@@ -52,6 +52,20 @@ function requireLogin() {
     }
 }
 
+function requireAdmin() {
+    if (!isLoggedIn()) {
+        // If not logged in at all, send to login page (using ../ because this is called from the admin folder)
+        header("Location: ../login.php");
+        exit();
+    }
+    
+    if (!isAdmin()) {
+        // If logged in but not an admin, send to the regular user dashboard
+        header("Location: ../dashboard.php");
+        exit();
+    }
+}
+
 // 3. SECURITY & UTILITIES
 function sanitize($data) {
     $data = trim($data);
